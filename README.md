@@ -1,2 +1,2 @@
-# kubeflow-pipelines-rocks
+# pipelines-rocks
 ROCKs for Kubeflow Pipelines
