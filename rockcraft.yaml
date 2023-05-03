@@ -7,7 +7,34 @@ description: |
 license: Apache-2.0
 platforms:
     amd64:
-
+services:
+  ml-frontend:
+    command: node dist/server.js ../client/ 3000
+    override: replace
+    startup: enabled
+    environment:
+        API_SERVER_ADDRESS: http://localhost:3001
 parts:
-    my-part:
-        plugin: nil
+    build:
+        plugin: npm
+        source: ./frontend
+        source-type: local
+        build-snaps:
+        - node/14/stable
+        override-build: |
+            npm ci
+            npm run postinstall
+            npm run build
+            mkdir -p ./server/dist
+            echo "2299cd7ff" > ./server/dist/COMMIT_HASH
+            echo "20230503" > ./server/dist/BUILD_DATE
+            echo "2.0.0-alpha.5" > ./server/dist/TAG_NAME # no support for envvars
+            ./scripts/yarn-licenses.sh
+            cp server /server
+            cp build /client
+            cd /server
+            npm ci
+            npm run build
+        stage-packages:
+            npm
+
