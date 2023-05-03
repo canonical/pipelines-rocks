@@ -1,0 +1,35 @@
+---
+name: python
+base: ubuntu:22.04
+version: '3.7.16'
+summary: Python 3 rock
+description: |
+  This rock contains a base install of Python 3.
+license: MIT
+platforms:
+  amd64:
+
+services:
+  python:
+    override: replace
+    command: python3
+    startup: enabled
+
+parts:
+  python:
+    plugin: autotools
+    source: https://www.python.org/ftp/python/3.7.16/Python-3.7.16.tar.xz
+    build-environment:
+      - LANG: C.UTF-8
+    build-packages:
+      - libbluetooth-dev
+      - tk-dev
+      - uuid-dev
+      - libssl-dev
+    override-prime: |
+      craftctl default
+      cd $CRAFT_PRIME/usr/local/bin
+      ln -srf python3 python
+      ln -srf pip3 pip
+    stage-packages:
+      - ca-certificates_data
