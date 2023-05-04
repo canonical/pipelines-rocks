@@ -9,32 +9,51 @@ platforms:
     amd64:
 services:
   ml-frontend:
-    command: node dist/server.js ../client/ 3000
+    command: node server/dist/server.js client/ 3000
     override: replace
     startup: enabled
     environment:
         API_SERVER_ADDRESS: http://localhost:3001
 parts:
-    build:
+
+    frontend:
         plugin: npm
-        source: ./frontend
-        source-type: local
+        source: https://github.com/kubeflow/pipelines/
+        source-type: git
         build-snaps:
         - node/14/stable
         override-build: |
+            cd frontend
             npm ci
             npm run postinstall
             npm run build
-            mkdir -p ./server/dist
-            echo "2299cd7ff" > ./server/dist/COMMIT_HASH
-            echo "20230503" > ./server/dist/BUILD_DATE
-            echo "2.0.0-alpha.5" > ./server/dist/TAG_NAME # no support for envvars
-            ./scripts/yarn-licenses.sh
-            cp server /server
-            cp build /client
-            cd /server
+            mkdir -p ${CRAFT_PART_INSTALL}/client
+            cp -r build ${CRAFT_PART_INSTALL}/client
+
+    backend:
+        plugin: npm
+        source: https://github.com/kubeflow/pipelines/
+        source-type: git
+        build-snaps:
+        - node/14/stable
+        override-build: |
+            cd frontend/server
+            mkdir -p dist
+            export BUILD_VERSION=$(git describe --abbrev=0 --tags)
+            export BUILD_COMMIT=$(git rev-parse HEAD)
+            export BUILD_DATE=$(date "+%F-%H-%M-%S")
+            echo $BUILD_COMMIT > ./dist/COMMIT_HASH
+            echo $BUILD_DATE > ./dist/BUILD_DATE
+            echo $BUILD_VERSION > ./dist/TAG_NAME
+            # previous ./scripts/yarn-licenses.sh
+            npm install -g yarn
+            npx yarn install
+            npx yarn licenses generate-disclaimer > ../server-dependency-licenses.txt
             npm ci
             npm run build
-        stage-packages:
-            npm
+            cd ..
+            npx yarn licenses generate-disclaimer > client-dependency-licenses.txt
+            cat server-dependency-licenses.txt client-dependency-licenses.txt >> server/dependency-licenses.txt
+            mkdir -p ${CRAFT_PART_INSTALL}/server
+            cp -r server ${CRAFT_PART_INSTALL}/server
 
