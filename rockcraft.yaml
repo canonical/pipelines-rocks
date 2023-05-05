@@ -15,7 +15,6 @@ services:
     environment:
         API_SERVER_ADDRESS: http://localhost:3001
 parts:
-
     frontend:
         plugin: npm
         source: https://github.com/kubeflow/pipelines/
@@ -56,4 +55,16 @@ parts:
             cat server-dependency-licenses.txt client-dependency-licenses.txt >> server/dependency-licenses.txt
             mkdir -p ${CRAFT_PART_INSTALL}/server
             cp -r server ${CRAFT_PART_INSTALL}/server
+    non-root-user:
+        plugin: nil
+        stage-packages:
+        - libstdc++6
+        - nodejs
+        - npm
+        overlay-script: |
+            # Create a user in the $CRAFT_OVERLAY chroot
+            groupadd -R $CRAFT_OVERLAY -g 1000 frontend
+            useradd -R $CRAFT_OVERLAY -M -r -u 1000 -g frontend frontend
+        override-prime: |
+            craftctl default
 
