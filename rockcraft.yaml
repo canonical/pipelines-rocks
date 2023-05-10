@@ -1,0 +1,62 @@
+name: kfp-api
+summary: An image for using Kubeflow pipelines API
+description: An image for using Kubeflow pipelines API
+version: "1.0"
+base: ubuntu:20.04
+license: Apache-2.0
+platforms:
+  amd64:
+
+parts:
+  builder:
+    plugin: go
+    source: https://github.com/kubeflow/pipelines.git
+    build-snaps:
+      - go/1.17/stable
+    build-environment:
+      - GO111MODULE: "on"
+    override-build: |-
+      # mkdir -p $CRAFT_PART_INSTALL/third_party
+      go build -o $CRAFT_PART_INSTALL/apiserver ./backend/src/apiserver/
+      ./hack/install-go-licenses.sh
+      $GOBIN/go-licenses check ./backend/src/apiserver
+      $GOBIN/go-licenses csv ./backend/src/apiserver > $CRAFT_PART_INSTALL/licenses.csv && \
+      diff $CRAFT_PART_INSTALL/licenses.csv backend/third_party_licenses/apiserver.csv && \
+      $GOBIN/go-licenses save ./backend/src/apiserver --save_path $CRAFT_PART_INSTALL/NOTICES
+    build-packages:
+      - cmake
+      - clang
+      - musl-dev
+      - openssl
+  compiler:
+    plugin: python
+    source-type: git
+    source: https://github.com/kubeflow/pipelines.git
+    python-requirements:
+      - ./backend/requirements.txt
+    build-environment:
+      - SNAPCRAFT_PYTHON_INTERPRETER: python3.7
+      - ARGO_VERSION: v3.3.10
+    build-packages:
+      - default-jdk
+      - python3-setuptools
+      - python3-dev
+      - jq
+      - wget
+    override-build: |
+      curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
+      gunzip argo-linux-amd64.gz
+      chmod +x argo-linux-amd64
+      mv ./argo-linux-amd64 $CRAFT_PART_INSTALL/argo
+      cp ./backend/src/apiserver/config/sample_config.json ./samples/
+      wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+      pip install --upgrade pip
+      python3 -m pip install -r requirements.txt --no-cache-dir
+      set -e; \
+      < ./samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
+      pipeline_py=".${pipeline_yaml%.yaml}"; \
+      mode=`< ./samples/sample_config.json jq ".[] | select(.file == \".${pipeline_yaml}\") | (if .mode == null then \"V1\" else .mode end)" --raw-output`; \
+      mv "$pipeline_py" "${pipeline_py}.tmp"; \
+      echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
+      dsl-compile --py "$pipeline_py" --output ".$pipeline_yaml" --mode "$mode" || python3 "$pipeline_py"; \
+      done
