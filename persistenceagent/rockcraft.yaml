@@ -1,0 +1,61 @@
+name: kfp-persistence
+summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
+description: |
+  This component serves as the backend persistence agent of Kubeflow pipelines.
+version: 2.0.0-ibeta.1_22.04_1 # version format: <KF-upstream-version>_<Charmed-KF-version>
+license: Apache-2.0
+base: ubuntu:22.04
+services:
+  persistenceagent:
+    override: replace
+    summary: "persistenceagent service"
+    startup: enabled
+    user: appuser
+    env:
+      - NAMESPACE: ""
+      - TTL_SECONDS_AFTER_WORKFLOW_FINISH: 86400
+      - NUM_WORKERS: 2
+    command: persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS}
+platforms:
+  amd64:
+
+parts:
+  persistenceagent:
+    plugin: go
+    source: https://github.com/kubeflow/pipelines
+    source-type: git
+    source-tag: 2.0.0-beta.1 # upstream branch
+    build-snaps:
+      - go
+    build-packages:
+      - git
+      - openssl
+      - gcc
+      - musl-dev
+    override-build: |
+      set -xe
+      cd $CRAFT_PART_SRC
+      ls -la
+      mkdir -p $CRAFT_PART_INSTALL/third_party
+      GO111MODULE=on go build -o $CRAFT_PART_INSTALL/bin/persistence_agent backend/src/agent/persistence/*.go
+      ./hack/install-go-licenses.sh
+      $GOBIN/go-licenses check ./backend/src/agent/persistence
+      $GOBIN/go-licenses csv ./backend/src/agent/persistence > $CRAFT_PART_INSTALL/third_party/licenses.csv && \
+       diff $CRAFT_PART_INSTALL/third_party/licenses.csv backend/third_party_licenses/swf.csv && \
+       $GOBIN/go-licenses save ./backend/src/agent/persistence --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
+
+      # security requirement
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+      dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
+  # user for this ROCK needs to be `appuser`
+  non-root-user:
+    plugin: nil
+    after: [persistenceagent]
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 appuser
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g appuser appuser
+
