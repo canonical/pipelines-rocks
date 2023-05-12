@@ -43,11 +43,17 @@ parts:
       diff $CRAFT_PART_INSTALL/third_party/licenses.csv backend/third_party_licenses/viewer.csv
       $GOBIN/go-licenses save ./backend/src/crd/controller/viewer --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
 
+      # security requirement
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/ROCK images
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+      dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      > ${CRAFT_PART_INSTALL}/usr/share/ROCK images/dpkg.query
+
   non-root-user:
     plugin: nil
     after: [viewer-crd-controller]
     overlay-script: |
       # Create a user in the $CRAFT_OVERLAY chroot
-      groupadd -R $CRAFT_OVERLAY -g 1001 viewer-crd-controller
-      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g viewer-crd-controller viewer-crd-controller
+      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
     override-prime: |
