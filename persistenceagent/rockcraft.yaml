@@ -11,11 +11,11 @@ services:
     summary: "persistenceagent service"
     startup: enabled
     user: appuser
-    env:
-      - NAMESPACE: ""
-      - TTL_SECONDS_AFTER_WORKFLOW_FINISH: 86400
-      - NUM_WORKERS: 2
-    command: persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS}
+    environment:
+      NAMESPACE: ""
+      TTL_SECONDS_AFTER_WORKFLOW_FINISH: 86400
+      NUM_WORKERS: 2
+    command: bash -c 'persistence_agent --logtostderr=true --namespace=$NAMESPACE --ttlSecondsAfterWorkflowFinish=$TTL_SECONDS_AFTER_WORKFLOW_FINISH --numWorker $NUM_WORKERS'
 platforms:
   amd64:
 
