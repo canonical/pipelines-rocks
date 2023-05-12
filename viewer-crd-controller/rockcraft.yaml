@@ -12,7 +12,8 @@ services:
     summary: "viewer CRD controller"
     startup: enabled
     command: controller
-    user: viewer-crd-controller
+    user: ubuntu
+
 platforms:
   amd64:
 
