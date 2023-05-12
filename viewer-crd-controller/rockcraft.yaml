@@ -1,0 +1,60 @@
+name: viewer-crd-controller
+summary: An image for the Viewer CRD Controller
+description: |
+  This image is used as part of the Charmed Kubeflow product.
+version: v1.7.0_1 # version format: <KF-upstream-version>_<Charmed-KF-version>
+license: Apache-2.0
+base: ubuntu:22.04
+build-base: ubuntu:22.04
+services:
+  controller:
+    override: replace
+    summary: "viewer CRD controller"
+    startup: enabled
+    command: controller
+    user: ubuntu
+
+platforms:
+  amd64:
+
+parts:
+  viewer-crd-controller:
+    plugin: go
+    source: https://github.com/kubeflow/pipelines
+    build-snaps:
+      - go/1.17/stable
+    source-type: git
+    source-tag: 2.0.0-alpha.7 # upstream tag
+    build-packages:
+      - git
+      - gcc
+      - musl-dev
+    build-environment:
+      - CGO_ENABLED: 0
+      - GOOS: linux
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      mkdir -p $CRAFT_PART_INSTALL/third_party
+
+      go build -o $CRAFT_PART_INSTALL/bin/controller backend/src/crd/controller/viewer/*.go
+
+      ./hack/install-go-licenses.sh
+      $GOBIN/go-licenses check ./backend/src/crd/controller/viewer
+      $GOBIN/go-licenses csv ./backend/src/crd/controller/viewer > $CRAFT_PART_INSTALL/third_party/licenses.csv
+      diff $CRAFT_PART_INSTALL/third_party/licenses.csv backend/third_party_licenses/viewer.csv
+      $GOBIN/go-licenses save ./backend/src/crd/controller/viewer --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
+
+      # security requirement
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/ROCK images
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+      dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      > ${CRAFT_PART_INSTALL}/usr/share/ROCK images/dpkg.query
+
+  non-root-user:
+    plugin: nil
+    after: [viewer-crd-controller]
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
+    override-prime: |
