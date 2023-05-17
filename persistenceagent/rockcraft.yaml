@@ -2,7 +2,7 @@ name: kfp-persistence
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend persistence agent of Kubeflow pipelines.
-version: 2.0.0-ibeta.1_22.04_1 # version format: <KF-upstream-version>_<Charmed-KF-version>
+version: 2.0.0-alpha.7_22.04_1 # version format: <KF-upstream-version>_<Charmed-KF-version>
 license: Apache-2.0
 base: ubuntu:22.04
 services:
@@ -24,7 +24,7 @@ parts:
     plugin: go
     source: https://github.com/kubeflow/pipelines
     source-type: git
-    source-tag: 2.0.0-beta.1 # upstream branch
+    source-tag: 2.0.0-alpha.7 # upstream branch
     build-snaps:
       - go
     build-packages:
@@ -35,7 +35,6 @@ parts:
     override-build: |
       set -xe
       cd $CRAFT_PART_SRC
-      ls -la
       mkdir -p $CRAFT_PART_INSTALL/third_party
       GO111MODULE=on go build -o $CRAFT_PART_INSTALL/bin/persistence_agent backend/src/agent/persistence/*.go
       ./hack/install-go-licenses.sh
