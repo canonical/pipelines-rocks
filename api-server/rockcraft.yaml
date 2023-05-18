@@ -1,5 +1,5 @@
 name: kfp-api
-summary: Pipelines api-server service
+summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
 version: "2.0.0-alpha.7_20.04_1"
 base: ubuntu:20.04
@@ -9,6 +9,7 @@ platforms:
 
 services:
   apiserver:
+    summary: "pipelines api-server service"
     override: merge
     command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
     startup: enabled
