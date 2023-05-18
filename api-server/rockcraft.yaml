@@ -1,14 +1,14 @@
 name: kfp-api
-summary: An image for using Kubeflow pipelines API
+summary: Pipelines api-server service
 description: An image for using Kubeflow pipelines API
-version: "2.0.0-alpha.7_22.04_1"
+version: "2.0.0-alpha.7_20.04_1"
 base: ubuntu:20.04
 license: Apache-2.0
 platforms:
   amd64:
 
 services:
-  base-admission-webhook:
+  apiserver:
     override: merge
     command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
     startup: enabled
