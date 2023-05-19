@@ -1,0 +1,70 @@
+name: frontend
+base: ubuntu:22.04
+version: '2.0.0-alpha.7_22.04_1'
+summary: Kubeflow Pipelines Management Frontend
+description: |
+    This rock runs a frontend development server.
+license: Apache-2.0
+platforms:
+    amd64:
+services:
+  ml-frontend:
+    command: node /server/server/dist/server.js /client/build 3000
+    override: replace
+    startup: enabled
+    user: ubuntu
+    environment:
+      API_SERVER_ADDRESS: http://localhost:3001
+parts:
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+  frontend:
+      plugin: npm
+      source: https://github.com/kubeflow/pipelines.git
+      source-tag: 2.0.0-alpha.7
+      build-snaps:
+      - node/14/stable
+      override-build: |
+          cd frontend
+          npm ci
+          npm run postinstall
+          npm run build
+          mkdir -p ${CRAFT_PART_INSTALL}/client
+          cp -r build ${CRAFT_PART_INSTALL}/client
+  backend:
+      plugin: npm
+      source: https://github.com/kubeflow/pipelines.git
+      source-tag: 2.0.0-alpha.7
+      build-snaps:
+      - node/14/stable
+      override-build: |
+          cd frontend/server
+          mkdir -p dist
+          export BUILD_VERSION=$(git describe --abbrev=0 --tags)
+          export BUILD_COMMIT=$(git rev-parse HEAD)
+          export BUILD_DATE=$(date "+%F-%H-%M-%S")
+          echo $BUILD_COMMIT > ./dist/COMMIT_HASH
+          echo $BUILD_DATE > ./dist/BUILD_DATE
+          echo $BUILD_VERSION > ./dist/TAG_NAME
+          # previous ./scripts/yarn-licenses.sh
+          npm install -g yarn
+          npx yarn install
+          npx yarn licenses generate-disclaimer > ../server-dependency-licenses.txt
+          npm ci
+          npm run build
+          cd ..
+          npx yarn licenses generate-disclaimer > client-dependency-licenses.txt
+          cat server-dependency-licenses.txt client-dependency-licenses.txt >> server/dependency-licenses.txt
+          mkdir -p ${CRAFT_PART_INSTALL}/server
+          cp -r server ${CRAFT_PART_INSTALL}/server
+
+  non-root-user:
+    plugin: nil
+    after: [frontend, backend]
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu 
