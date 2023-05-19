@@ -30,6 +30,11 @@ parts:
       - go/1.17/stable
     build-environment:
       - GO111MODULE: "on"
+    build-packages:
+      - cmake
+      - clang
+      - musl-dev
+      - openssl
     override-build: |-
       go build -o apiserver backend/src/apiserver/*.go
       cp apiserver $CRAFT_STAGE
@@ -39,11 +44,6 @@ parts:
       $GOBIN/go-licenses csv ./backend/src/apiserver > $CRAFT_STAGE/licenses.csv && \
       diff $CRAFT_STAGE/licenses.csv backend/third_party_licenses/apiserver.csv && \
       $GOBIN/go-licenses save ./backend/src/apiserver --save_path $CRAFT_STAGE/NOTICES
-    build-packages:
-      - cmake
-      - clang
-      - musl-dev
-      - openssl
   
   compiler:
     plugin: python
@@ -67,7 +67,6 @@ parts:
       mv ./argo-linux-amd64 $CRAFT_PART_INSTALL/argo
       cp ./backend/src/apiserver/config/sample_config.json ./samples/
       wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-      pip install --upgrade pip
       python3 -m pip install -r requirements.txt --no-cache-dir
       set -e; \
       < ./samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
