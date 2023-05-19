@@ -47,5 +47,5 @@ parts:
     after: [controller]
     overlay-script: |
       # Create a user in the $CRAFT_OVERLAY chroot
-      groupadd -R $CRAFT_OVERLAY -g 1000 appuser
-      useradd -R $CRAFT_OVERLAY -M -r -u 1000 -g appuser appuser
+      groupadd -R $CRAFT_OVERLAY -g 1001 appuser
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g appuser appuser
