@@ -1,0 +1,116 @@
+name: kfp-api
+summary: An image for using Kubeflow pipelines API
+description: An image for using Kubeflow pipelines API
+version: "2.0.0-alpha.7_20.04_1"
+base: ubuntu:20.04
+license: Apache-2.0
+platforms:
+  amd64:
+
+services:
+  apiserver:
+    summary: "pipelines api-server service"
+    override: merge
+    command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
+    startup: enabled
+    user: ubuntu
+
+parts:
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
+  builder:
+    plugin: go
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.0.0-alpha.7
+    build-snaps:
+      - go/1.17/stable
+    build-environment:
+      - GO111MODULE: "on"
+    build-packages:
+      - cmake
+      - clang
+      - musl-dev
+      - openssl
+    override-build: |-
+      go build -o apiserver backend/src/apiserver/*.go
+      cp apiserver $CRAFT_STAGE
+      cp -r backend/src/apiserver/config/ $CRAFT_STAGE/config
+      ./hack/install-go-licenses.sh
+      $GOBIN/go-licenses check ./backend/src/apiserver
+      $GOBIN/go-licenses csv ./backend/src/apiserver > $CRAFT_STAGE/licenses.csv && \
+      diff $CRAFT_STAGE/licenses.csv backend/third_party_licenses/apiserver.csv && \
+      $GOBIN/go-licenses save ./backend/src/apiserver --save_path $CRAFT_STAGE/NOTICES
+  
+  compiler:
+    plugin: python
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.0.0-alpha.7
+    python-requirements:
+      - ./backend/requirements.txt
+    build-environment:
+      - SNAPCRAFT_PYTHON_INTERPRETER: python3.7
+      - ARGO_VERSION: v3.3.8
+    build-packages:
+      - default-jdk
+      - python3-setuptools
+      - python3-dev
+      - jq
+      - wget
+    override-build: |
+      curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
+      gunzip argo-linux-amd64.gz
+      chmod +x argo-linux-amd64
+      mv ./argo-linux-amd64 $CRAFT_PART_INSTALL/argo
+      cp ./backend/src/apiserver/config/sample_config.json ./samples/
+      wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+      python3 -m pip install -r requirements.txt --no-cache-dir
+      set -e; \
+      < ./samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
+      pipeline_py=".${pipeline_yaml%.yaml}"; \
+      mode=`< ./samples/sample_config.json jq ".[] | select(.file == \".${pipeline_yaml}\") | (if .mode == null then \"V1\" else .mode end)" --raw-output`; \
+      mv "$pipeline_py" "${pipeline_py}.tmp"; \
+      echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
+      dsl-compile --py "$pipeline_py" --output ".$pipeline_yaml" --mode "$mode" || python3 "$pipeline_py"; \
+      done
+      cp -r ./samples $CRAFT_STAGE/samples
+
+  server:
+    after: [builder, compiler]
+    plugin: nil
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.0.0-alpha.7
+    build-packages:
+      - ca-certificates
+      - wget
+    build-environment:
+      # These are set at build in dockerfile (those are just links to examples)
+      - COMMIT_SHA: unknown
+      - TAG_NAME: unknown
+    override-build: |
+      cp -r $CRAFT_STAGE/config/ config
+      sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i config/sample_config.json
+      sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i config/sample_config.json
+
+      cp -r $CRAFT_STAGE/samples/ $CRAFT_PART_INSTALL/samples
+      cp -r config $CRAFT_PART_INSTALL/config
+      cp $CRAFT_STAGE/apiserver $CRAFT_PART_INSTALL/apiserver
+      cp $CRAFT_STAGE/licenses.csv $CRAFT_PART_INSTALL/licenses.csv
+      cp -r $CRAFT_STAGE/NOTICES/ $CRAFT_PART_INSTALL/NOTICES
+    organize:
+      apiserver: "bin/apiserver"
+      licenses.csv: "third_party/licenses.csv"
+      NOTICES: "third_party/NOTICES"
+  
+  non-root-user:
+    plugin: nil
+    after: [server]
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
+    override-prime: |
+      craftctl default
