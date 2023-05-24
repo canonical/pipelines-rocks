@@ -1,3 +1,5 @@
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0-alpha.7/frontend/Dockerfile
+
 name: frontend
 base: ubuntu:22.04
 version: '2.0.0-alpha.7_22.04_1'
@@ -61,12 +63,13 @@ parts:
         mkdir -p ${CRAFT_PART_INSTALL}/server
         cp -r server ${CRAFT_PART_INSTALL}/server
 
+  install-node:
+    plugin: nil
+    override-build: |
+      curl -s "https://nodejs.org/dist/v14.21.3/node-v14.21.3-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
+  
   non-root-user:
     plugin: nil
-    stage-packages:
-    - libstdc++6
-    - nodejs
-    - npm
     overlay-script: |
         # Create a user in the $CRAFT_OVERLAY chroot
         groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
