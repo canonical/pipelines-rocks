@@ -56,7 +56,6 @@ parts:
   
   non-root-user:
     plugin: nil
-    after: [python, gcloud, files]
     overlay-script: |
       # Create a user in the $CRAFT_OVERLAY chroot
       groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
