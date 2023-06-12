@@ -1,0 +1,64 @@
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0-alpha.7/backend/Dockerfile.visualization
+name: ml-pipeline-visualization-server
+base: ubuntu:20.04
+version: '2.0.0-alpha.7_20.04_1'
+summary: ml-pipeline/visualization-server
+description: |
+    ml-pipeline/visualization-server
+    https://github.com/kubeflow/pipelines/tree/master/backend
+license: GPL-3.0
+platforms:
+    amd64:
+
+services:
+  vis-server:
+    override: replace
+    command: python3.6 server.py
+    startup: enabled
+    user: ubuntu
+
+package-repositories:
+  - type: apt
+    ppa: deadsnakes/ppa
+    priority: always
+
+parts:
+  python:
+    plugin: python
+    source: https://github.com/kubeflow/pipelines.git
+    source-subdir: backend/src/apiserver/visualization
+    source-tag: 2.0.0-alpha.7
+    stage-packages:
+    - python3.6-venv
+    python-requirements:
+    - requirements.txt
+    override-build: |
+      rm "${CRAFT_PART_INSTALL}"/usr/bin/python3.6m
+      ln -s python3.6 "${CRAFT_PART_INSTALL}"/usr/bin/python3
+      craftctl default
+  
+  gcloud:
+    plugin: nil
+    override-build: |
+      set -x
+      curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
+      mkdir -p "${CRAFT_PART_INSTALL}"/usr/local/gcloud
+      tar -C "${CRAFT_PART_INSTALL}"/usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
+      "${CRAFT_PART_INSTALL}"/usr/local/gcloud/google-cloud-sdk/install.sh
+      cp backend/src/apiserver/visualization/server.py $CRAFT_PART_INSTALL
+
+  files:
+    plugin: nil
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.0.0-alpha.7
+    override-build: |
+      cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
+  
+  non-root-user:
+    plugin: nil
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
+    override-prime: |
+      craftctl default
