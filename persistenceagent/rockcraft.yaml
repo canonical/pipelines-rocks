@@ -5,12 +5,12 @@ description: |
 version: 2.0.0-alpha.7_22.04_1 # version format: <KF-upstream-version>_<Charmed-KF-version>
 license: Apache-2.0
 base: ubuntu:22.04
+run-user: _daemon_
 services:
   persistenceagent:
     override: replace
     summary: "persistenceagent service"
     startup: enabled
-    user: appuser
     environment:
       NAMESPACE: ""
       TTL_SECONDS_AFTER_WORKFLOW_FINISH: 86400
@@ -46,15 +46,5 @@ parts:
       # security requirement
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
       (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
-
-  # user for this ROCK needs to be `appuser`
-  non-root-user:
-    plugin: nil
-    after: [persistenceagent]
-    overlay-script: |
-      # Create a user in the $CRAFT_OVERLAY chroot
-      groupadd -R $CRAFT_OVERLAY -g 1001 appuser
-      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g appuser appuser
-
