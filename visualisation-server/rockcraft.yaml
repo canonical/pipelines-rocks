@@ -9,13 +9,12 @@ description: |
 license: GPL-3.0
 platforms:
     amd64:
-
+run-user: _daemon_
 services:
   vis-server:
     override: replace
-    command: python3.6 server.py
+    command: python3.6 /server.py
     startup: enabled
-    user: ubuntu
 
 package-repositories:
   - type: apt
@@ -53,12 +52,3 @@ parts:
     source-tag: 2.0.0-alpha.7
     override-build: |
       cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
-  
-  non-root-user:
-    plugin: nil
-    overlay-script: |
-      # Create a user in the $CRAFT_OVERLAY chroot
-      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
-      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
-    override-prime: |
-      craftctl default
