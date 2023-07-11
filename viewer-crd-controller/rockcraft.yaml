@@ -2,18 +2,17 @@ name: viewer-crd-controller
 summary: An image for the Viewer CRD Controller
 description: |
   This image is used as part of the Charmed Kubeflow product.
-version: v1.7.0_1 # version format: <KF-upstream-version>_<Charmed-KF-version>
+version: 2.0.0-alpha.7_22.04_1 # version format: <KF-upstream-version>_<base-version>-<Charmed-KF-version>
 license: Apache-2.0
 base: ubuntu:22.04
 build-base: ubuntu:22.04
+run-user: _daemon_
 services:
   controller:
     override: replace
     summary: "viewer CRD controller"
     startup: enabled
     command: controller
-    user: ubuntu
-
 platforms:
   amd64:
 
@@ -42,13 +41,13 @@ parts:
       $GOBIN/go-licenses check ./backend/src/crd/controller/viewer
       $GOBIN/go-licenses csv ./backend/src/crd/controller/viewer > $CRAFT_PART_INSTALL/third_party/licenses.csv
       diff $CRAFT_PART_INSTALL/third_party/licenses.csv backend/third_party_licenses/viewer.csv
-      $GOBIN/go-licenses save ./backend/src/crd/controller/viewer --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
+      $GOBIN/go-licenses save --force ./backend/src/crd/controller/viewer --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
 
       # security requirement
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/ROCK images
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
       (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
-      > ${CRAFT_PART_INSTALL}/usr/share/ROCK images/dpkg.query
+      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
 
   non-root-user:
     plugin: nil
