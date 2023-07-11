@@ -6,14 +6,13 @@ base: ubuntu:20.04
 license: Apache-2.0
 platforms:
   amd64:
-
+run-user: _daemon_
 services:
   apiserver:
     summary: "pipelines api-server service"
     override: merge
     command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
     startup: enabled
-    user: ubuntu
 
 parts:
   security-team-requirement:
@@ -104,13 +103,3 @@ parts:
       apiserver: "bin/apiserver"
       licenses.csv: "third_party/licenses.csv"
       NOTICES: "third_party/NOTICES"
-  
-  non-root-user:
-    plugin: nil
-    after: [server]
-    overlay-script: |
-      # Create a user in the $CRAFT_OVERLAY chroot
-      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
-      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
-    override-prime: |
-      craftctl default
