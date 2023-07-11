@@ -5,15 +5,15 @@ description: |
 version: 2.0.0-alpha.7_22.04_1
 license: Apache-2.0
 base: ubuntu:22.04
+run-user: _daemon_
 services:
   controller:
     override: replace
     summary: "scheduled workflow controller service"
-    command: /bin/controller --logtostderr=true --namespace=${NAMESPACE} need to solve NAMESPACE
+    command: /bin/controller --logtostderr=true --namespace=${NAMESPACE}
     startup: enabled
-    user: appuser
     environment:
-      NAMESPACE: ""
+      NAMESPACE: "kubeflow"
       CRON_SCHEDULE_TIMEZONE: UTC
 platforms:
   amd64:
@@ -23,7 +23,7 @@ parts:
     plugin: nil
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
 
   controller:
     plugin: go
@@ -41,11 +41,3 @@ parts:
       $GOBIN/go-licenses csv ./backend/src/crd/controller/scheduledworkflow > $CRAFT_PART_INSTALL/third_party/licenses.csv && \
        diff $CRAFT_PART_INSTALL/third_party/licenses.csv backend/third_party_licenses/swf.csv && \
        $GOBIN/go-licenses save ./backend/src/crd/controller/scheduledworkflow --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
-    
-  non-root-user:
-    plugin: nil
-    after: [controller]
-    overlay-script: |
-      # Create a user in the $CRAFT_OVERLAY chroot
-      groupadd -R $CRAFT_OVERLAY -g 1001 appuser
-      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g appuser appuser
