@@ -15,7 +15,8 @@ jobs:
       - name: Setup ROCKs environment
         run: |
           sudo snap install rockcraft --edge --classic
-          lxd init --minimal
+          sudo lxd waitready
+          sudo lxd init --minimal
           sudo chmod a+wr /var/snap/lxd/common/lxd/unix.socket
           lxc network set lxdbr0 ipv6.address none
           bash -c 'sudo usermod -a -G lxd $USER'
