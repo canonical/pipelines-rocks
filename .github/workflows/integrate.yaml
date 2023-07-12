@@ -2,8 +2,7 @@ name: CI
 
 on:
   workflow_call:
-env:
-  ROCKS_ARTEFACT: kfp-operators-rocks
+
 jobs:
   build:
     name: Build rocks
@@ -27,8 +26,8 @@ jobs:
       - name: Upload rock as artefact
         uses: actions/upload-artifact@v3
         with:
-            name: $ROCKS_ARTEFACT
-            path: ~/$ROCKS_ARTEFACT
+            name: kfp-operators-rocks
+            path: ~/kfp-operators-rocks
 
 #  integration:
 #    name: Run remote repository integration tests
