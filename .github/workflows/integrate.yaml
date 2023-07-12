@@ -11,39 +11,22 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v3
 
-      # Workaround for setting up a bunch of things
-      - name: Use ck8s to setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-
       - name: Setup ROCKs environment
-        run: |
-          # Install and configure rockcraft
-          sudo snap install rockcraft --edge --classic
-
-      - name: Build all rocks
-        run: bash .github/workflows/build-rocks.sh .
+        uses: canonical/craft-actions/rockcraft-pack@main
+        id: rockcraft
+        strategy:
+          matrix:
+            rock:
+              - api-server
+              - persistenceagent
+              - scheduledworkflow
+              - viewer-crd-controller
+              - visualisation-server
+        with:
+          path: ./${{ matrix.rock }}
 
       - name: Upload rock as artefact
         uses: actions/upload-artifact@v3
         with:
             name: kfp-operators-rocks
-            path: ~/kfp-operators-rocks
-
-#  integration:
-#    name: Run remote repository integration tests
-#    runs-on: ubuntu-22.04
-#    needs: build
-#    steps:
-#      - name: Download rocks
-#        uses: actions/download-artiact@v3
-#        with:
-#          name: $ROCKS_ARTEFACT
-#
-#      - name: Setup operator environment
-#        uses: charmed-kubernetes/actions-operator@main
-#        with:
-#          provider: microk8s
-#          channel: 1.24/stable
-#          juju-channel: 2.9/stable
-#      - name: Import images to microk8s cache
-#        run: bash .github/workflows/import-rocks.sh
+            path: ${{ steps.rockcraft.outputs.rock }}
