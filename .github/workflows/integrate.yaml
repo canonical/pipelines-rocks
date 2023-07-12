@@ -2,16 +2,12 @@ name: CI
 
 on:
   workflow_call:
-
+env:
+  ROCKS_ARTEFACT: kfp-operators-rocks
 jobs:
   build:
     name: Build rocks
     runs-on: ubuntu-22.04
-    outputs:
-      artifact-name:
-        description: Name of the directory where rocks are
-        default: kfp-operators-rocks
-        type: string
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
@@ -21,14 +17,14 @@ jobs:
           sudo snap install rockcraft
           lxd init --auto
 
-      - name: Build rocks
-        run: bash .github/workflows/build-rocks.sh
+      - name: Build all rocks
+        run: bash .github/workflows/build-rocks.sh .
 
       - name: Upload rock as artefact
         uses: actions/upload-artifact@v3
         with:
-            name: ${{ outputs.artifact-name }}
-            path: ~/${{ outputs.artifact-name }}
+            name: $ROCKS_ARTEFACT
+            path: ~/$ROCKS_ARTEFACT
 
   integration:
     name: Run remote repository integration tests
@@ -37,7 +33,13 @@ jobs:
       - name: Download rocks
         uses: actions/download-artiact@v3
         with:
-          name: ${{ needs.build.outputs.artifact-name }}
+          name: $ROCKS_ARTEFACT
 
+      - name: Setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: microk8s
+          channel: 1.24/stable
+          juju-channel: 2.9/stable
       - name: Import images to microk8s cache
         run: bash .github/workflows/import-rocks.sh
