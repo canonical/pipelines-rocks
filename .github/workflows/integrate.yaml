@@ -12,14 +12,14 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v3
 
+      # Workaround for setting up a bunch of things
+      - name: Use ck8s to setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+
       - name: Setup ROCKs environment
         run: |
+          # Install and configure rockcraft
           sudo snap install rockcraft --edge --classic
-          sudo lxd waitready
-          sudo lxd init --minimal
-          sudo chmod a+wr /var/snap/lxd/common/lxd/unix.socket
-          lxc network set lxdbr0 ipv6.address none
-          bash -c 'sudo usermod -a -G lxd $USER'
 
       - name: Build all rocks
         run: bash .github/workflows/build-rocks.sh .
