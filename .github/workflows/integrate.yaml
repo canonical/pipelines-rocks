@@ -7,6 +7,8 @@ jobs:
   build:
     name: Build rocks
     runs-on: ubuntu-22.04
+    outputs:
+      rockcraft-out: ${{ steps.rockcraft.outputs.rock }}
     strategy:
       matrix:
         rock:
@@ -30,3 +32,56 @@ jobs:
         with:
             name: kfp-operators-rocks
             path: ${{ steps.rockcraft.outputs.rock }}
+
+  test:
+    name: Integrate and test rocks
+    runs-on: ubuntu-22.04
+    needs: build
+    strategy:
+      matrix:
+        rock:
+          - api-server
+          - persistenceagent
+          - scheduledworkflow
+          - viewer-crd-controller
+          - visualisation-server
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: microk8s
+          channel: 1.24/stable
+          juju-channel: 2.9/stable
+          charmcraft-channel: latest/candidate
+          microk8s-addons: "dns hostpath-storage rbac metallb:10.64.140.43-10.64.140.49"
+
+      # TODO: Remove once https://bugs.launchpad.net/juju/+bug/2024897 is fixed
+      - name: Refresh Juju snap
+        run: |
+          sudo snap refresh juju --revision 22345
+
+      - name: Clone kfp-operators repository
+        uses: actions/checkout@v3
+        with:
+          name: canonical/kfp-operators
+          path: ~/kfp-operators
+
+      - name: Setup environment
+        run: |
+          sudo snap install --devmode --channel edge skopeo
+          sudo snap install yq
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Download rocks and import them to microk8s cr
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.build.output.rockcraft-out }}
+          working-directory: ~/kfp-operators-rocks
+        run: |
+          bash -c './github/workflows/import-rocks.sh'
+          sg microk8s -c "microk8s ctr images ls"
