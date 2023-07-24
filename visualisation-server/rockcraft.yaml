@@ -38,7 +38,7 @@ parts:
   
   gcloud:
     plugin: nil
-    stage-package:
+    stage-packages:
     - wget
     - curl
     - tar
