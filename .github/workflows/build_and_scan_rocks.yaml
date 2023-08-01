@@ -19,6 +19,7 @@ jobs:
           - scheduledworkflow
           - visualisation-server
           - viewer-crd-controller
+          - frontend
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/build_and_scan_rock.yaml@main
     secrets:
       JIRA_URL: ${{ secrets.CVE_REPORT_JIRA_URL }}
