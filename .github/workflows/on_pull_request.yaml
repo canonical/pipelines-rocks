@@ -1,0 +1,14 @@
+name: On Pull Request
+
+# On pull_request, we:
+# * always build the rocks
+# * always run tests
+
+on:
+  pull_request:
+
+jobs:
+
+  tests:
+    name: Run Tests
+    uses: ./.github/workflows/integrate.yaml
