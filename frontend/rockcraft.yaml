@@ -62,9 +62,8 @@ parts:
         ./scripts/yarn-licenses.sh
 
         # Create a server directory in root and copy the server directory into it
-        mkdir -p ${CRAFT_PART_INSTALL}/server/
-        cp -a server ${CRAFT_PART_INSTALL}/server/
-        cd ${CRAFT_PART_INSTALL}/server
+        cp -r server ${CRAFT_PART_INSTALL}/
+        cd ${CRAFT_PART_INSTALL}/server/
         npm ci
         npm run build
 
