@@ -73,12 +73,3 @@ parts:
     plugin: nil
     override-build: |
       curl -s "https://nodejs.org/dist/v14.21.3/node-v14.21.3-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
-  
-  non-root-user:
-    plugin: nil
-    overlay-script: |
-        # Create a user in the $CRAFT_OVERLAY chroot
-        groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
-        useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
-    override-prime: |
-        craftctl default
