@@ -8,6 +8,7 @@ description: |
 license: Apache-2.0
 platforms:
     amd64:
+run-user: _daemon_
 services:
   ml-frontend:
     command: node /server/server/dist/server.js /client/ 3000
