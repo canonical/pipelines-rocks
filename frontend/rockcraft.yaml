@@ -37,7 +37,7 @@ parts:
         npm run build
         # Create a client directory in root and copy the build directory into it
         mkdir -p ${CRAFT_PART_INSTALL}/client
-        cp -r build ${CRAFT_PART_INSTALL}/client
+        cp -a build ${CRAFT_PART_INSTALL}/client
 
   # This part builds the server side of the frontend container image
   backend:
@@ -47,6 +47,8 @@ parts:
     build-snaps:
     - node/14/stable
     override-build: |
+        # Change working directory to pipelines/frontend
+        cd ./frontend
         mkdir -p ./server/dist
         export BUILD_VERSION=$(git describe --abbrev=0 --tags)
         export BUILD_COMMIT=$(git rev-parse HEAD)
@@ -54,25 +56,14 @@ parts:
         echo $BUILD_COMMIT > ./server/dist/COMMIT_HASH
         echo $BUILD_DATE > ./server/dist/BUILD_DATE
         echo $BUILD_VERSION > ./server/dist/TAG_NAME
-        # The following commands are an exact copy/paste from ./scripts/yarn-licenses.sh
-        # Start of the script
-        # 1. Install yarn
-        npm install -D yarn
-        # 2. Set up yarn: It will convert from package.json to yarn.lock
-        npx yarn install
-        # 3. Generate full license texts in one file
-        npx yarn licenses generate-disclaimer > dependency-licenses.txt
-        # 4. Generate full license texts for Frontend server
-        pushd server
-        npx yarn install
-        npx yarn licenses generate-disclaimer > dependency-licenses.txt
-        popd
-        # 5. Merge two licenses to one file in server/dependency-licenses.txt
-        cat dependency-licenses.txt >> server/dependency-licenses.txt
-        # End of the script
+
+        # Generate the dependency licenses files (one for the UI and one for the webserver),
+        # concatenate them to one file under ./src/server
+        ./scripts/yarn-licenses.sh
+
         # Create a server directory in root and copy the server directory into it
-        mkdir -p ${CRAFT_PART_INSTALL}/server
-        cp -r server ${CRAFT_PART_INSTALL}/server
+        mkdir -p ${CRAFT_PART_INSTALL}/server/
+        cp -a server ${CRAFT_PART_INSTALL}/server/
         cd ${CRAFT_PART_INSTALL}/server
         npm ci
         npm run build
