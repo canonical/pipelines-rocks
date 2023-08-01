@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    name: Build rocks
+    runs-on: ubuntu-22.04
+    outputs:
+      rockcraft-out: ${{ steps.rockcraft.outputs.rock }}
+    strategy:
+      matrix:
+        rock:
+          - api-server
+          - persistenceagent
+          - scheduledworkflow
+          - viewer-crd-controller
+          - visualisation-server
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+
+      - name: Setup ROCKs environment
+        uses: canonical/craft-actions/rockcraft-pack@main
+        id: rockcraft
+        with:
+          path: ./${{ matrix.rock }}
+
+      - name: Upload rock as artefact
+        uses: actions/upload-artifact@v3
+        with:
+            name: kfp-operators-rocks
+            path: ${{ steps.rockcraft.outputs.rock }}
+
+# TODO: add integration tests
