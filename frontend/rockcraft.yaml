@@ -13,7 +13,6 @@ services:
     command: node /server/server/dist/server.js /client/ 3000
     override: replace
     startup: enabled
-    user: ubuntu
     environment:
       API_SERVER_ADDRESS: http://localhost:3001
 parts:
