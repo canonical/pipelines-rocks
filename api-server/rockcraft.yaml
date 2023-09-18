@@ -66,7 +66,7 @@ parts:
       mv ./argo-linux-amd64 $CRAFT_PART_INSTALL/argo
       cp ./backend/src/apiserver/config/sample_config.json ./samples/
       wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-      python3 -m pip install -r requirements.txt --no-cache-dir
+      python3 -m pip install -r ./backend/requirements.txt --no-cache-dir
       set -e; \
       < ./samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
       pipeline_py=".${pipeline_yaml%.yaml}"; \
