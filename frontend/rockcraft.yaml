@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0/frontend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.1/frontend/Dockerfile
 name: frontend
 base: ubuntu:22.04
-version: '2.0.0_22.04_1'
+version: '2.0.1_22.04_1'
 summary: Kubeflow Pipelines Management Frontend
 description: |
     This rock runs a frontend development server.
@@ -21,15 +21,17 @@ parts:
     plugin: nil
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
-      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      ( \
+        echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+        dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ \
+         -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W \
+      ) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
 
   # This part builds the client side of the frontend container image
   frontend:
     plugin: npm
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0
+    source-tag: 2.0.1
     build-snaps:
     - node/14/stable
     override-build: |
@@ -45,7 +47,7 @@ parts:
   backend:
     plugin: npm
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0
+    source-tag: 2.0.1
     build-snaps:
     - node/14/stable
     override-build: |

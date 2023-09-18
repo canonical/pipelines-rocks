@@ -1,7 +1,8 @@
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.1/backend/Dockerfile
 name: kfp-api
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.0.0-alpha.7_20.04_1"
+version: "2.0.1_20.04_1"
 base: ubuntu:20.04
 license: Apache-2.0
 platforms:
@@ -19,14 +20,17 @@ parts:
     plugin: nil
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      ( \
+        echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+        dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W \
+      ) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
 
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0-alpha.7
+    source-tag: 2.0.1
     build-snaps:
-      - go/1.17/stable
+      - go/1.20/stable
     build-environment:
       - GO111MODULE: "on"
     build-packages:
@@ -47,12 +51,10 @@ parts:
   compiler:
     plugin: python
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0-alpha.7
-    python-requirements:
-      - ./backend/requirements.txt
+    source-tag: 2.0.1
     build-environment:
       - SNAPCRAFT_PYTHON_INTERPRETER: python3.7
-      - ARGO_VERSION: v3.3.8
+      - ARGO_VERSION: v3.3.10
     build-packages:
       - default-jdk
       - python3-setuptools
@@ -70,10 +72,7 @@ parts:
       set -e; \
       < ./samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
       pipeline_py=".${pipeline_yaml%.yaml}"; \
-      mode=`< ./samples/sample_config.json jq ".[] | select(.file == \".${pipeline_yaml}\") | (if .mode == null then \"V1\" else .mode end)" --raw-output`; \
-      mv "$pipeline_py" "${pipeline_py}.tmp"; \
-      echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
-      dsl-compile --py "$pipeline_py" --output ".$pipeline_yaml" --mode "$mode" || python3 "$pipeline_py"; \
+      python3 "$pipeline_py"; \
       done
       cp -r ./samples $CRAFT_STAGE/samples
 
@@ -81,7 +80,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0-alpha.7
+    source-tag: 2.0.1
     build-packages:
       - ca-certificates
       - wget

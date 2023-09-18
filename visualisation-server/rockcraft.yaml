@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0-alpha.7/backend/Dockerfile.visualization
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.1/backend/Dockerfile.visualization
 name: ml-pipeline-visualization-server
 base: ubuntu:20.04
-version: '2.0.0-alpha.7_20.04_1'
+version: '2.0.1_20.04_1'
 summary: ml-pipeline/visualization-server
 description: |
     ml-pipeline/visualization-server
@@ -22,11 +22,20 @@ package-repositories:
     priority: always
 
 parts:
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      ( \
+        echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+        dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W \
+      ) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
   python:
     plugin: python
     source: https://github.com/kubeflow/pipelines.git
     source-subdir: backend/src/apiserver/visualization
-    source-tag: 2.0.0-alpha.7
+    source-tag: 2.0.1
     stage-packages:
     - python3.6-venv
     python-requirements:
@@ -54,6 +63,6 @@ parts:
   files:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0-alpha.7
+    source-tag: 2.0.1
     override-build: |
       cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
