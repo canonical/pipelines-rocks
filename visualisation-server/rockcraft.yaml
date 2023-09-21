@@ -50,8 +50,10 @@ parts:
       pip-compile --verbose backend/src/apiserver/visualization/requirements.in
       python3.8 -m pip install cython
       python3.8 -m pip install -r backend/src/apiserver/visualization/requirements.txt --no-cache-dir
-  
-  gcloud:
+
+      cp -r backend/src/apiserver/visualization/* ${CRAFT_PART_INSTALL}
+
+    gcloud:
     plugin: nil
     stage-packages:
     - wget
@@ -65,10 +67,3 @@ parts:
       tar -C "${CRAFT_PART_INSTALL}"/usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
       "${CRAFT_PART_INSTALL}"/usr/local/gcloud/google-cloud-sdk/install.sh
       cp backend/src/apiserver/visualization/server.py $CRAFT_PART_INSTALL
-
-#  files:
-#    plugin: nil
-#    source: https://github.com/kubeflow/pipelines.git
-#    source-tag: 2.0.0
-#    override-build: |
-#      cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
