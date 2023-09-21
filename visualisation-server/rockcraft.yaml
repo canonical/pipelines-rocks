@@ -1,7 +1,7 @@
 # Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0/backend/Dockerfile.visualization
 name: ml-pipeline-visualization-server
 base: ubuntu:20.04
-version: '2.0.0_20.04_2'
+version: '2.0.0_20.04_1'
 summary: ml-pipeline/visualization-server
 description: |
     ml-pipeline/visualization-server
@@ -38,8 +38,6 @@ parts:
     - pip
     - python3.8-venv
     override-build: |
-      ls -la .
-
       # install tensorflow*
       python3.8 -m pip install pip install tensorflow==2.11.1 tensorflow-metadata tensorflow-model-analysis tensorflow-data-validation tensorflow-serving-api
 
