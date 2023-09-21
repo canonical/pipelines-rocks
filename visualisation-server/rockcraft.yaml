@@ -52,7 +52,7 @@ parts:
 
       cp -r backend/src/apiserver/visualization/* ${CRAFT_PART_INSTALL}
 
-    gcloud:
+  gcloud:
     plugin: nil
     stage-packages:
     - wget
