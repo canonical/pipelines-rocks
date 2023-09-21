@@ -1,0 +1,12 @@
+bokeh
+gcsfs
+google-api-python-client
+itables
+ipykernel
+ipython
+jupyter_client
+nbconvert
+nbformat
+scikit_learn
+tornado
+mistune

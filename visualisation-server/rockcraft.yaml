@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0-alpha.7/backend/Dockerfile.visualization
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0/backend/Dockerfile.visualization
 name: ml-pipeline-visualization-server
 base: ubuntu:20.04
-version: '2.0.0-alpha.7_20.04_1'
+version: '2.0.0_20.04_2'
 summary: ml-pipeline/visualization-server
 description: |
     ml-pipeline/visualization-server
@@ -13,7 +13,7 @@ run-user: _daemon_
 services:
   vis-server:
     override: replace
-    command: python3.6 /server.py
+    command: python3 /server.py
     startup: enabled
 
 package-repositories:
@@ -22,19 +22,36 @@ package-repositories:
     priority: always
 
 parts:
+  patch:
+    plugin: nil
+    source: .
+    override-build: |
+      cp backend/src/apiserver/visualization/requirements.in ${CRAFT_PART_INSTALL}/
+      cat ${CRAFT_PART_INSTALL}/requirements.in
+
   python:
+    after: [patch]
     plugin: python
     source: https://github.com/kubeflow/pipelines.git
-    source-subdir: backend/src/apiserver/visualization
-    source-tag: 2.0.0-alpha.7
+    source-tag: 2.0.0
     stage-packages:
-    - python3.6-venv
-    python-requirements:
-    - requirements.txt
+    - pip
+    - python3.8-venv
     override-build: |
-      rm "${CRAFT_PART_INSTALL}"/usr/bin/python3.6m
-      ln -s python3.6 "${CRAFT_PART_INSTALL}"/usr/bin/python3
-      craftctl default
+      ls -la .
+
+      # install tensorflow*
+      python3.8 -m pip install pip install tensorflow==2.11.1 tensorflow-metadata tensorflow-model-analysis tensorflow-data-validation tensorflow-serving-api
+
+      # copy requirements.in from patch part
+      cp /root/parts/patch/install/requirements.in backend/src/apiserver/visualization/requirements.in
+
+      python3.8 -m pip install pip==22.0.4 setuptools --upgrade --quiet
+      python3.8 -m pip install pip-tools==5.4.0 --quiet
+      export PATH=$PATH:${CRAFT_PART_INSTALL}/usr/local/bin
+      pip-compile --verbose backend/src/apiserver/visualization/requirements.in
+      python3.8 -m pip install cython
+      python3.8 -m pip install -r backend/src/apiserver/visualization/requirements.txt --no-cache-dir
   
   gcloud:
     plugin: nil
@@ -51,9 +68,9 @@ parts:
       "${CRAFT_PART_INSTALL}"/usr/local/gcloud/google-cloud-sdk/install.sh
       cp backend/src/apiserver/visualization/server.py $CRAFT_PART_INSTALL
 
-  files:
-    plugin: nil
-    source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0-alpha.7
-    override-build: |
-      cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
+#  files:
+#    plugin: nil
+#    source: https://github.com/kubeflow/pipelines.git
+#    source-tag: 2.0.0
+#    override-build: |
+#      cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
