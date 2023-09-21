@@ -27,7 +27,6 @@ parts:
     source: .
     override-build: |
       cp backend/src/apiserver/visualization/requirements.in ${CRAFT_PART_INSTALL}/
-      cat ${CRAFT_PART_INSTALL}/requirements.in
 
   python:
     after: [patch]
