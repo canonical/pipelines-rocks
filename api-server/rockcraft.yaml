@@ -12,7 +12,7 @@ services:
     summary: "pipelines api-server service"
     override: merge
     command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
-    startup: enabled
+    startup: disabled
 
 parts:
   security-team-requirement:
