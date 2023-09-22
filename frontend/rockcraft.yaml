@@ -11,7 +11,7 @@ platforms:
 run-user: _daemon_
 services:
   ml-frontend:
-    command: node /server/server/dist/server.js /client/ 3000
+    command: node /server/dist/server.js /client/ 3000
     override: replace
     startup: enabled
     environment:
