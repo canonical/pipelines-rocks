@@ -10,10 +10,10 @@ services:
   controller:
     override: replace
     summary: "scheduled workflow controller service"
-    command: /bin/controller --logtostderr=true --namespace=${NAMESPACE}
+    command: bash -c '/bin/controller --logtostderr=true --namespace=${NAMESPACE}'
     startup: enabled
     environment:
-      NAMESPACE: "kubeflow"
+      NAMESPACE: ""
       CRON_SCHEDULE_TIMEZONE: UTC
 platforms:
   amd64:
