@@ -2,7 +2,7 @@ name: scheduledworkflow
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend scheduled workflow of Kubeflow pipelines.
-version: 2.0.0-alpha.7_22.04_1
+version: 2.0.0-alpha.7_22.04_2
 license: Apache-2.0
 base: ubuntu:22.04
 run-user: _daemon_
