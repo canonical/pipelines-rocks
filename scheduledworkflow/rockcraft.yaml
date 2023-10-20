@@ -2,7 +2,7 @@ name: scheduledworkflow
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend scheduled workflow of Kubeflow pipelines.
-version: 2.0.0-alpha.7_22.04_1
+version: 2.0.0-alpha.7_22.04_2
 license: Apache-2.0
 base: ubuntu:22.04
 run-user: _daemon_
@@ -10,10 +10,10 @@ services:
   controller:
     override: replace
     summary: "scheduled workflow controller service"
-    command: /bin/controller --logtostderr=true --namespace=${NAMESPACE}
+    command: bash -c '/bin/controller --logtostderr=true --namespace=${NAMESPACE}'
     startup: enabled
     environment:
-      NAMESPACE: "kubeflow"
+      NAMESPACE: ""
       CRON_SCHEDULE_TIMEZONE: UTC
 platforms:
   amd64:
