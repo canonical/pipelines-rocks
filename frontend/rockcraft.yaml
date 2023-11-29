@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0/frontend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/frontend/Dockerfile
 name: frontend
 base: ubuntu:22.04
-version: '2.0.0_22.04_1'
+version: '2.0.3_22.04_1'
 summary: Kubeflow Pipelines Management Frontend
 description: |
     This rock runs a frontend development server.
@@ -29,7 +29,7 @@ parts:
   frontend:
     plugin: npm
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0
+    source-tag: 2.0.3
     build-snaps:
     - node/14/stable
     override-build: |
@@ -45,7 +45,7 @@ parts:
   backend:
     plugin: npm
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0
+    source-tag: 2.0.3
     build-snaps:
     - node/14/stable
     override-build: |
