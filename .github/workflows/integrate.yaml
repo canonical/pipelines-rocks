@@ -10,6 +10,7 @@ jobs:
     outputs:
       rockcraft-out: ${{ steps.rockcraft.outputs.rock }}
     strategy:
+      fail-fast: false
       matrix:
         rock:
           - api-server
