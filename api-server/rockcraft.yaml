@@ -29,28 +29,28 @@ parts:
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
       (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
 
-  # builder:
-  #   plugin: go
-  #   source: https://github.com/kubeflow/pipelines.git
-  #   source-tag: 2.0.3
-  #   build-snaps:
-  #     - go/1.21/stable
-  #   build-environment:
-  #     - GO111MODULE: "on"
-  #   build-packages:
-  #     - cmake
-  #     - clang
-  #     - musl-dev
-  #     - openssl
-  #   override-build: |-
-  #     go build -o apiserver backend/src/apiserver/*.go
-  #     cp apiserver $CRAFT_STAGE
-  #     cp -r backend/src/apiserver/config/ $CRAFT_STAGE/config
-  #     ./hack/install-go-licenses.sh
-  #     $GOBIN/go-licenses check ./backend/src/apiserver
-  #     $GOBIN/go-licenses csv ./backend/src/apiserver > $CRAFT_STAGE/licenses.csv && \
-  #     diff $CRAFT_STAGE/licenses.csv backend/third_party_licenses/apiserver.csv && \
-  #     $GOBIN/go-licenses save ./backend/src/apiserver --save_path $CRAFT_STAGE/NOTICES
+  builder:
+    plugin: go
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.0.3
+    build-snaps:
+      - go/1.21/stable
+    build-environment:
+      - GO111MODULE: "on"
+    build-packages:
+      - cmake
+      - clang
+      - musl-dev
+      - openssl
+    override-build: |-
+      go build -o apiserver backend/src/apiserver/*.go
+      cp apiserver $CRAFT_STAGE
+      cp -r backend/src/apiserver/config/ $CRAFT_STAGE/config
+      ./hack/install-go-licenses.sh
+      $GOBIN/go-licenses check ./backend/src/apiserver
+      $GOBIN/go-licenses csv ./backend/src/apiserver > $CRAFT_STAGE/licenses.csv && \
+      diff $CRAFT_STAGE/licenses.csv backend/third_party_licenses/apiserver.csv && \
+      $GOBIN/go-licenses save ./backend/src/apiserver --save_path $CRAFT_STAGE/NOTICES
   
   # Compile and stage the sample pipelines
   compiler:
@@ -105,29 +105,26 @@ parts:
 
       cp -r ./samples $CRAFT_STAGE/samples
 
-  # server:
-  #   after: [builder, compiler]
-  #   plugin: nil
-  #   source: https://github.com/kubeflow/pipelines.git
-  #   source-tag: 2.0.3
-  #   build-packages:
-  #     - ca-certificates
-  #     - wget
-  #   build-environment:
-  #     # These are set at build in dockerfile (those are just links to examples)
-  #     - COMMIT_SHA: unknown
-  #     - TAG_NAME: unknown
-  #   override-build: |
-  #     cp -r $CRAFT_STAGE/config/ config
-  #     sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i config/sample_config.json
-  #     sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i config/sample_config.json
+  server:
+    after: [builder, compiler]
+    plugin: nil
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.0.3
+    build-packages:
+      - ca-certificates
+      - wget
+    build-environment:
+      # These are set at build in dockerfile (those are just links to examples)
+      - COMMIT_SHA: unknown
+      - TAG_NAME: unknown
+    override-build: |
+      cp -r $CRAFT_STAGE/config/ $CRAFT_PART_INSTALL/config
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      cp $CRAFT_STAGE/apiserver $CRAFT_PART_INSTALL/bin/apiserver
+      mkdir -p $CRAFT_PART_INSTALL/third_party
+      cp $CRAFT_STAGE/licenses.csv $CRAFT_PART_INSTALL/third_party/licenses.csv
+      cp -r $CRAFT_STAGE/NOTICES/ $CRAFT_PART_INSTALL/third_party/NOTICES
+      cp -r $CRAFT_STAGE/samples/ $CRAFT_PART_INSTALL/samples
 
-  #     cp -r $CRAFT_STAGE/samples/ $CRAFT_PART_INSTALL/samples
-  #     cp -r config $CRAFT_PART_INSTALL/config
-  #     cp $CRAFT_STAGE/apiserver $CRAFT_PART_INSTALL/apiserver
-  #     cp $CRAFT_STAGE/licenses.csv $CRAFT_PART_INSTALL/licenses.csv
-  #     cp -r $CRAFT_STAGE/NOTICES/ $CRAFT_PART_INSTALL/NOTICES
-  #   organize:
-  #     apiserver: "bin/apiserver"
-  #     licenses.csv: "third_party/licenses.csv"
-  #     NOTICES: "third_party/NOTICES"
+      sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
+      sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
