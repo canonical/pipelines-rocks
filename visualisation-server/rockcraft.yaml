@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0-alpha.7/backend/Dockerfile.visualization
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/backend/Dockerfile.visualization
 name: ml-pipeline-visualization-server
-base: ubuntu:20.04
-version: '2.0.0-alpha.7_20.04_1'
+base: ubuntu@20.04
+version: '2.0.3-20.04-1'
 summary: ml-pipeline/visualization-server
 description: |
     ml-pipeline/visualization-server
@@ -13,7 +13,7 @@ run-user: _daemon_
 services:
   vis-server:
     override: replace
-    command: python3.6 /server.py
+    command: python3.8 /server.py
     startup: enabled
 
 package-repositories:
@@ -26,16 +26,17 @@ parts:
     plugin: python
     source: https://github.com/kubeflow/pipelines.git
     source-subdir: backend/src/apiserver/visualization
-    source-tag: 2.0.0-alpha.7
+    source-tag: 2.0.3
     stage-packages:
-    - python3.6-venv
+      # sync this python version to that in the tensorflow 
+      # base image of Dockerfile.visualization.  Also keep this
+      # in sync with PARTS_PYTHON_INTERPRETER below
+    - python3.8-venv
     python-requirements:
     - requirements.txt
-    override-build: |
-      rm "${CRAFT_PART_INSTALL}"/usr/bin/python3.6m
-      ln -s python3.6 "${CRAFT_PART_INSTALL}"/usr/bin/python3
-      craftctl default
-  
+    build-environment: 
+    - PARTS_PYTHON_INTERPRETER: python3.8
+
   gcloud:
     plugin: nil
     stage-packages:
@@ -54,6 +55,6 @@ parts:
   files:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0-alpha.7
+    source-tag: 2.0.3
     override-build: |
       cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
