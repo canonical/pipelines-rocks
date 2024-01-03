@@ -1,8 +1,9 @@
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/backend/Dockerfile
 name: kfp-api
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.0.0-alpha.7_20.04_1"
-base: ubuntu:20.04
+version: "2.0.3-20.04-1"
+base: ubuntu@20.04
 license: Apache-2.0
 platforms:
   amd64:
@@ -14,6 +15,13 @@ services:
     command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
     startup: disabled
 
+
+package-repositories:
+  # Required for build-packages=python3.7
+  - type: apt
+    ppa: deadsnakes/ppa
+    priority: always
+
 parts:
   security-team-requirement:
     plugin: nil
@@ -24,9 +32,9 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0-alpha.7
+    source-tag: 2.0.3
     build-snaps:
-      - go/1.17/stable
+      - go/1.21/stable
     build-environment:
       - GO111MODULE: "on"
     build-packages:
@@ -44,44 +52,64 @@ parts:
       diff $CRAFT_STAGE/licenses.csv backend/third_party_licenses/apiserver.csv && \
       $GOBIN/go-licenses save ./backend/src/apiserver --save_path $CRAFT_STAGE/NOTICES
   
+  # Compile and stage the sample pipelines
   compiler:
-    plugin: python
+    plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0-alpha.7
-    python-requirements:
-      - ./backend/requirements.txt
+    source-tag: 2.0.3
     build-environment:
-      - SNAPCRAFT_PYTHON_INTERPRETER: python3.7
-      - ARGO_VERSION: v3.3.8
+      - ARGO_VERSION: v3.3.10
     build-packages:
       - default-jdk
-      - python3-setuptools
-      - python3-dev
+      - python3.7
+      # required to build google-cloud-profiler wheel for pyproject.toml-based projects
+      - python3.7-dev
+      - python3.7-distutils
       - jq
       - wget
+
     override-build: |
+      # Remove the source from the build directory so we don't
+      # accidentally use the wrong requirements.txt or inputs
+      # The build steps below copy everything that is needed to the working directory
+      rm -rf ./*
+
+      # Create a symbolic link so the rest of this script is like upstream
+      ln -s /usr/bin/python3.7 python3
+      PATH=.:$PATH
+
+      # Setup pip
+      # TODO: Is this needed?
+      wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+
+      cp $CRAFT_PART_SRC/backend/requirements.txt .
+      python3 -m pip install -r requirements.txt --no-cache-dir
+
+      # Fetch argo CLI
+      # TODO: Is this used?
       curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
       gunzip argo-linux-amd64.gz
       chmod +x argo-linux-amd64
       mv ./argo-linux-amd64 $CRAFT_PART_INSTALL/argo
-      cp ./backend/src/apiserver/config/sample_config.json ./samples/
-      wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-      python3 -m pip install -r requirements.txt --no-cache-dir
+
+      # Compile the sample pipelines
+      cp -r $CRAFT_PART_SRC/samples ./samples
+      cp $CRAFT_PART_SRC/backend/src/apiserver/config/sample_config.json ./samples/
+
       set -e; \
       < ./samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
       pipeline_py=".${pipeline_yaml%.yaml}"; \
-      mode=`< ./samples/sample_config.json jq ".[] | select(.file == \".${pipeline_yaml}\") | (if .mode == null then \"V1\" else .mode end)" --raw-output`; \
-      mv "$pipeline_py" "${pipeline_py}.tmp"; \
-      echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
-      dsl-compile --py "$pipeline_py" --output ".$pipeline_yaml" --mode "$mode" || python3 "$pipeline_py"; \
+      which python3; \
+      python3 "$pipeline_py"; \
       done
+
       cp -r ./samples $CRAFT_STAGE/samples
 
   server:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.0-alpha.7
+    source-tag: 2.0.3
     build-packages:
       - ca-certificates
       - wget
@@ -90,16 +118,13 @@ parts:
       - COMMIT_SHA: unknown
       - TAG_NAME: unknown
     override-build: |
-      cp -r $CRAFT_STAGE/config/ config
-      sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i config/sample_config.json
-      sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i config/sample_config.json
-
+      cp -r $CRAFT_STAGE/config/ $CRAFT_PART_INSTALL/config
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      cp $CRAFT_STAGE/apiserver $CRAFT_PART_INSTALL/bin/apiserver
+      mkdir -p $CRAFT_PART_INSTALL/third_party
+      cp $CRAFT_STAGE/licenses.csv $CRAFT_PART_INSTALL/third_party/licenses.csv
+      cp -r $CRAFT_STAGE/NOTICES/ $CRAFT_PART_INSTALL/third_party/NOTICES
       cp -r $CRAFT_STAGE/samples/ $CRAFT_PART_INSTALL/samples
-      cp -r config $CRAFT_PART_INSTALL/config
-      cp $CRAFT_STAGE/apiserver $CRAFT_PART_INSTALL/apiserver
-      cp $CRAFT_STAGE/licenses.csv $CRAFT_PART_INSTALL/licenses.csv
-      cp -r $CRAFT_STAGE/NOTICES/ $CRAFT_PART_INSTALL/NOTICES
-    organize:
-      apiserver: "bin/apiserver"
-      licenses.csv: "third_party/licenses.csv"
-      NOTICES: "third_party/NOTICES"
+
+      sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
+      sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
