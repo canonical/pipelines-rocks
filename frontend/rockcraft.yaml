@@ -39,7 +39,7 @@ parts:
         npm run build
         # Create a client directory in root and copy the build directory into it
         mkdir -p ${CRAFT_PART_INSTALL}/client
-        cp -a build ${CRAFT_PART_INSTALL}/client
+        cp -a build/* ${CRAFT_PART_INSTALL}/client
 
   # This part builds the server side of the frontend container image
   backend:
