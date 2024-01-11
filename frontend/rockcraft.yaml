@@ -1,7 +1,7 @@
 # Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/frontend/Dockerfile
 name: frontend
 base: ubuntu@22.04
-version: '2.0.3-22.04-1'
+version: '2.0.3'
 summary: Kubeflow Pipelines Management Frontend
 description: |
     This rock runs a frontend development server.
