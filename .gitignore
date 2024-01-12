@@ -1,0 +1,4 @@
+venv
+charm_repo
+*.rock
+*.tar
