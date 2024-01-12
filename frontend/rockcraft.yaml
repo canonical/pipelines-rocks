@@ -10,7 +10,10 @@ platforms:
     amd64:
 run-user: _daemon_
 services:
-  ml-frontend:
+  ml-pipeline-ui:
+    # Command is different than the upstream one due to the `daemon` user not having
+    # access to the `~/..` directory. Thus, we should update charm's command when integrating
+    # this ROCK.
     command: node /server/dist/server.js /client/ 3000
     override: replace
     startup: enabled
