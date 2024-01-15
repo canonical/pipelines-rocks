@@ -1,7 +1,7 @@
 # Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/frontend/Dockerfile
 name: frontend
 base: ubuntu@22.04
-version: '2.0.3-22.04-1'
+version: '2.0.3'
 summary: Kubeflow Pipelines Management Frontend
 description: |
     This rock runs a frontend development server.
@@ -10,7 +10,10 @@ platforms:
     amd64:
 run-user: _daemon_
 services:
-  ml-frontend:
+  ml-pipeline-ui:
+    # Command is different than the upstream one due to the `daemon` user not having
+    # access to the `~/..` directory. Thus, we should update charm's command when integrating
+    # this ROCK.
     command: node /server/dist/server.js /client/ 3000
     override: replace
     startup: enabled
@@ -39,7 +42,7 @@ parts:
         npm run build
         # Create a client directory in root and copy the build directory into it
         mkdir -p ${CRAFT_PART_INSTALL}/client
-        cp -a build ${CRAFT_PART_INSTALL}/client
+        cp -a build/* ${CRAFT_PART_INSTALL}/client
 
   # This part builds the server side of the frontend container image
   backend:
