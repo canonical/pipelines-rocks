@@ -1,8 +1,9 @@
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/backend/Dockerfile.persistenceagent
 name: kfp-persistence
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend persistence agent of Kubeflow pipelines.
-version: 2.0.0-alpha.7_22.04_1 # version format: <KF-upstream-version>_<Charmed-KF-version>
+version: 2.0.3
 license: Apache-2.0
 base: ubuntu:22.04
 run-user: _daemon_
@@ -24,9 +25,9 @@ parts:
     plugin: go
     source: https://github.com/kubeflow/pipelines
     source-type: git
-    source-tag: 2.0.0-alpha.7 # upstream branch
+    source-tag: 2.0.3
     build-snaps:
-      - go
+      - go/1.20/stable
     build-packages:
       - git
       - openssl
@@ -40,7 +41,7 @@ parts:
       ./hack/install-go-licenses.sh
       $GOBIN/go-licenses check ./backend/src/agent/persistence
       $GOBIN/go-licenses csv ./backend/src/agent/persistence > $CRAFT_PART_INSTALL/third_party/licenses.csv && \
-       diff $CRAFT_PART_INSTALL/third_party/licenses.csv backend/third_party_licenses/swf.csv && \
+       diff $CRAFT_PART_INSTALL/third_party/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
        $GOBIN/go-licenses save ./backend/src/agent/persistence --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
 
       # security requirement
