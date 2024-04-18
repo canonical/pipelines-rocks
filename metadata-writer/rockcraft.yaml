@@ -1,0 +1,59 @@
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/backend/metadata_writer/Dockerfile
+name: metadata-writer
+summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
+description: |
+  This service logs the metadata for KFP components and pipelines.
+version: 2.0.3
+license: Apache-2.0
+base: ubuntu@22.04
+run-user: _daemon_
+services:
+  controller:
+    override: replace
+    summary: "Entry point for kfp-metadata-writer oci-image"
+    command: python3 -u /kfp/metadata_writer/metadata_writer.py
+    startup: enabled
+platforms:
+  amd64:
+
+package-repositories:
+  - type: apt
+    ppa: deadsnakes/ppa
+    priority: always
+
+parts:
+  python:
+    plugin: python
+    source: https://github.com/kubeflow/pipelines.git
+    source-subdir: backend/metadata_writer
+    source-tag: 2.0.3
+    stage-packages:
+      # sync this python version to the base image in the Dockerfile.
+      # Also keep this in sync with PARTS_PYTHON_INTERPRETER below.
+    - python3.8-venv
+    python-requirements:
+    - requirements.txt
+    build-environment: 
+    - PARTS_PYTHON_INTERPRETER: python3.8
+
+  python3-is-python3.8:
+    plugin: nil
+    override-build: |
+      # Ensure `python3` is an executable command in our primed image by making
+      # a symbolic link
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin/
+      ln -s /usr/bin/python3.8 $CRAFT_PART_INSTALL/usr/bin/python3
+
+  copy-files:
+    plugin: nil
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.0.3
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/kfp/metadata_writer/
+      cp  ${CRAFT_PART_SRC}/backend/metadata_writer/src/* ${CRAFT_PART_INSTALL}/kfp/metadata_writer
+
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
