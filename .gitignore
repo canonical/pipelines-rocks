@@ -2,3 +2,4 @@ venv
 charm_repo
 *.rock
 *.tar
+__pycache__
