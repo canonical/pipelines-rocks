@@ -29,6 +29,7 @@ parts:
       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
 
   # This part builds the client side of the frontend container image
+  # trigger ci
   frontend:
     plugin: npm
     source: https://github.com/kubeflow/pipelines.git
