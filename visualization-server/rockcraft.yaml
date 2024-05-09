@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/backend/Dockerfile.visualization
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.5/backend/Dockerfile.visualization
 name: visualization-server
 base: ubuntu@20.04
-version: '2.0.3'
+version: '2.0.5'
 summary: ml-pipeline/visualization-server
 description: |
     ml-pipeline/visualization-server
@@ -26,7 +26,7 @@ parts:
     plugin: python
     source: https://github.com/kubeflow/pipelines.git
     source-subdir: backend/src/apiserver/visualization
-    source-tag: 2.0.3
+    source-tag: 2.0.5
     stage-packages:
       # sync this python version to that in the tensorflow 
       # base image of Dockerfile.visualization.  Also keep this
@@ -55,6 +55,6 @@ parts:
   files:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.3
+    source-tag: 2.0.5
     override-build: |
       cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
