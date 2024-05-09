@@ -1,4 +1,4 @@
-name: kfp-persistence
+name: persistenceagent
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend persistence agent of Kubeflow pipelines.

@@ -1,5 +1,5 @@
 # Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.0-alpha.7/backend/Dockerfile.visualization
-name: ml-pipeline-visualization-server
+name: visualization-server
 base: ubuntu:20.04
 version: '2.0.0-alpha.7_20.04_1'
 summary: ml-pipeline/visualization-server
