@@ -1,8 +1,8 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.5/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.0.3"
+version: "2.0.5"
 base: ubuntu@20.04
 license: Apache-2.0
 platforms:
@@ -32,7 +32,7 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.3
+    source-tag: 2.0.5
     build-snaps:
       - go/1.21/stable
     build-environment:
@@ -56,7 +56,7 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.3
+    source-tag: 2.0.5
     build-environment:
       - ARGO_VERSION: v3.3.10
     build-packages:
@@ -109,7 +109,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.3
+    source-tag: 2.0.5
     build-packages:
       - ca-certificates
       - wget
