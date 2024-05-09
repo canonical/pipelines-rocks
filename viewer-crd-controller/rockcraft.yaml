@@ -1,9 +1,9 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/backend/Dockerfile.viewercontroller
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.5/backend/Dockerfile.viewercontroller
 name: viewer-crd-controller
 summary: An image for the Viewer CRD Controller
 description: |
   This image is used as part of the Charmed Kubeflow product.
-version: 2.0.3
+version: 2.0.5
 license: Apache-2.0
 base: ubuntu@22.04
 build-base: ubuntu@22.04
@@ -24,7 +24,7 @@ parts:
     build-snaps:
       - go/1.20/stable
     source-type: git
-    source-tag: 2.0.3
+    source-tag: 2.0.5
     build-packages:
       - git
       - gcc
