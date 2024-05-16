@@ -34,7 +34,7 @@ parts:
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.0.5
     build-snaps:
-    - node/14/stable
+    - node/18/stable
     override-build: |
         # Change working directory to pipelines/frontend
         cd frontend
@@ -50,7 +50,7 @@ parts:
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.0.5
     build-snaps:
-    - node/14/stable
+    - node/18/stable
     override-build: |
         # Change working directory to pipelines/frontend
         cd ./frontend
@@ -75,4 +75,4 @@ parts:
   install-node:
     plugin: nil
     override-build: |
-      curl -s "https://nodejs.org/dist/v14.21.3/node-v14.21.3-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
+      curl -s "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
