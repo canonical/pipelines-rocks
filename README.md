@@ -1,2 +1,2 @@
 # pipelines-rocks
-ROCKs for Kubeflow Pipelines
+Rocks for Kubeflow Pipelines
