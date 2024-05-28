@@ -1,11 +1,13 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.5/backend/Dockerfile.persistenceagent
+# Based on: https://github.com/kubeflow/pipelines/blob/sdk-2.2.0/backend/Dockerfile.persistenceagent
 name: persistenceagent
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend persistence agent of Kubeflow pipelines.
-version: 2.0.5
+version: "2.2.0"
 license: Apache-2.0
-base: ubuntu:22.04
+base: ubuntu@22.04
+platforms:
+  amd64:
 run-user: _daemon_
 services:
   persistenceagent:
@@ -17,15 +19,21 @@ services:
       TTL_SECONDS_AFTER_WORKFLOW_FINISH: 86400
       NUM_WORKERS: 2
     command: bash -c 'persistence_agent --logtostderr=true --namespace=$NAMESPACE --ttlSecondsAfterWorkflowFinish=$TTL_SECONDS_AFTER_WORKFLOW_FINISH --numWorker $NUM_WORKERS'
-platforms:
-  amd64:
 
 parts:
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
   persistenceagent:
     plugin: go
     source: https://github.com/kubeflow/pipelines
     source-type: git
-    source-tag: 2.0.5
+    source-tag: 2.2.0
     build-snaps:
       - go/1.20/stable
     build-packages:
@@ -43,9 +51,3 @@ parts:
       $GOBIN/go-licenses csv ./backend/src/agent/persistence > $CRAFT_PART_INSTALL/third_party/licenses.csv && \
        diff $CRAFT_PART_INSTALL/third_party/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
        $GOBIN/go-licenses save ./backend/src/agent/persistence --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
-
-      # security requirement
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
-      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
