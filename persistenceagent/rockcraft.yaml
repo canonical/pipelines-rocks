@@ -18,7 +18,9 @@ services:
       NAMESPACE: ""
       TTL_SECONDS_AFTER_WORKFLOW_FINISH: 86400
       NUM_WORKERS: 2
-    command: bash -c 'persistence_agent --logtostderr=true --namespace=$NAMESPACE --ttlSecondsAfterWorkflowFinish=$TTL_SECONDS_AFTER_WORKFLOW_FINISH --numWorker $NUM_WORKERS'
+      LOG_LEVEL: "info"
+      EXECUTIONTYPE: "Workflow"
+    command: bash -c 'persistence_agent --logtostderr=true --namespace=$NAMESPACE --ttlSecondsAfterWorkflowFinish=$TTL_SECONDS_AFTER_WORKFLOW_FINISH --numWorker $NUM_WORKERS --executionType ${EXECUTIONTYPE} --logLevel=${LOG_LEVEL}'
 
 parts:
   security-team-requirement:
@@ -35,7 +37,7 @@ parts:
     source-type: git
     source-tag: 2.2.0
     build-snaps:
-      - go/1.20/stable
+      - go/1.21/stable
     build-packages:
       - git
       - openssl
