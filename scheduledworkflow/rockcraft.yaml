@@ -1,11 +1,13 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.5/backend/Dockerfile.scheduledworkflow
+# Based on: https://github.com/kubeflow/pipelines/blob/2.2.0/backend/Dockerfile.scheduledworkflow
 name: scheduledworkflow
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend scheduled workflow of Kubeflow pipelines.
-version: 2.2.0
+version: "2.2.0"
 license: Apache-2.0
 base: ubuntu@22.04
+platforms:
+  amd64:
 run-user: _daemon_
 services:
   controller:
@@ -17,8 +19,6 @@ services:
       NAMESPACE: ""
       CRON_SCHEDULE_TIMEZONE: UTC
       LOG_LEVEL: "info"
-platforms:
-  amd64:
 
 parts:
   security-team-requirement:
