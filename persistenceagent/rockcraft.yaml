@@ -1,4 +1,4 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/sdk-2.2.0/backend/Dockerfile.persistenceagent
+# Based on: https://github.com/kubeflow/pipelines/blob/2.2.0/backend/Dockerfile.persistenceagent
 name: persistenceagent
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
@@ -20,7 +20,7 @@ services:
       NUM_WORKERS: 2
       LOG_LEVEL: "info"
       EXECUTIONTYPE: "Workflow"
-    command: bash -c 'persistence_agent --logtostderr=true --namespace=$NAMESPACE --ttlSecondsAfterWorkflowFinish=$TTL_SECONDS_AFTER_WORKFLOW_FINISH --numWorker $NUM_WORKERS --executionType ${EXECUTIONTYPE} --logLevel=${LOG_LEVEL}'
+    command: bash -c 'persistence_agent --logtostderr=true --namespace=$NAMESPACE --ttlSecondsAfterWorkflowFinish=$TTL_SECONDS_AFTER_WORKFLOW_FINISH --numWorker $NUM_WORKERS --executionType $EXECUTIONTYPE --logLevel=$LOG_LEVEL'
 
 parts:
   security-team-requirement:
