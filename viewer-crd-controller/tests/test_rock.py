@@ -16,10 +16,7 @@ def rock_test_env(tmpdir):
     )
     yield tmpdir, container_name
 
-    try:
-        subprocess.run(["docker", "rm", container_name])
-    except Exception:
-        pass
+    subprocess.run(["docker", "rm", container_name], shell=True, check=False)
     # tmpdir fixture we use here should clean up the other files for us
 
 
