@@ -1,4 +1,4 @@
-name: Build and scan ROCKs, save and send scan reports
+name: Build and scan rocks, save and send scan reports
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
 
 jobs:
   build-scan-rocks:
-    name: Build and scan ROCKs
+    name: Build and scan rocks
     strategy:
       matrix:
         rock:
