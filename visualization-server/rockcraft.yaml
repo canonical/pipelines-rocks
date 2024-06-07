@@ -1,20 +1,21 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.5/backend/Dockerfile.visualization
+# Based on: https://github.com/kubeflow/pipelines/blob/2.2.0/backend/Dockerfile.visualization
 name: visualization-server
-base: ubuntu@20.04
-version: '2.0.5'
 summary: ml-pipeline/visualization-server
 description: |
     ml-pipeline/visualization-server
     https://github.com/kubeflow/pipelines/tree/master/backend
-license: GPL-3.0
+version: "2.2.0"
+license: Apache-2.0
+base: ubuntu@22.04
 platforms:
     amd64:
 run-user: _daemon_
 services:
   vis-server:
     override: replace
-    command: python3.8 /server.py
+    summary: "visualization server service"
     startup: enabled
+    command: "python3 /server.py"
 
 package-repositories:
   - type: apt
@@ -22,20 +23,37 @@ package-repositories:
     priority: always
 
 parts:
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
   python:
     plugin: python
     source: https://github.com/kubeflow/pipelines.git
     source-subdir: backend/src/apiserver/visualization
-    source-tag: 2.0.5
+    source-tag: 2.2.0
     stage-packages:
       # sync this python version to that in the tensorflow 
       # base image of Dockerfile.visualization.  Also keep this
       # in sync with PARTS_PYTHON_INTERPRETER below
     - python3.8-venv
+    - python3.8-dev
     python-requirements:
     - requirements.txt
     build-environment: 
     - PARTS_PYTHON_INTERPRETER: python3.8
+  
+  python3-is-python3.8:
+    plugin: nil
+    override-build: |
+      # Ensure `python3` is an executable command in our primed image by making
+      # a symbolic link
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin/
+      ln -s /usr/bin/python3.8 $CRAFT_PART_INSTALL/usr/bin/python3
 
   gcloud:
     plugin: nil
@@ -50,11 +68,10 @@ parts:
       mkdir -p "${CRAFT_PART_INSTALL}"/usr/local/gcloud
       tar -C "${CRAFT_PART_INSTALL}"/usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
       "${CRAFT_PART_INSTALL}"/usr/local/gcloud/google-cloud-sdk/install.sh
-      cp backend/src/apiserver/visualization/server.py $CRAFT_PART_INSTALL
 
   files:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.5
+    source-tag: 2.2.0
     override-build: |
       cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
