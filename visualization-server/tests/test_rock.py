@@ -56,7 +56,7 @@ def test_rock(rock_test_env):
             "/bin/bash",
             LOCAL_ROCK_IMAGE,
             "-c",
-            "pip list | grep tensorflows || { echo 'TensorFlow is not installed'; exit 1; }",
+            "pip list | grep tensorflow || { echo 'TensorFlow is not installed'; exit 1; }",
         ],
         check=True,
     )
