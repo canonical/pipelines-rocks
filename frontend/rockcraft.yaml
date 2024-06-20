@@ -41,6 +41,7 @@ parts:
         # The following should be removed once the rock is built from a version with the fix for
         # https://github.com/kubeflow/pipelines/issues/10770
         jq '.dependencies."@craco/craco"="^7.0.0"' package.json > package.tmp && mv package.tmp package.json
+        npm i --package-lock-only
         npm ci && npm run postinstall
         npm run build
         # Create a client directory in root and copy the build directory into it
