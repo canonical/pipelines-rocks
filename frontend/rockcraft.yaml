@@ -58,6 +58,10 @@ parts:
     override-build: |
         # Change working directory to pipelines/frontend
         cd ./frontend
+        # The following should be removed once the rock is built from a version with the fix for
+        # https://github.com/kubeflow/pipelines/issues/10770
+        jq '.dependencies."@craco/craco"="^7.0.0"' package.json > package.tmp && mv package.tmp package.json
+        npm i --package-lock-only
         mkdir -p ./server/dist
         export BUILD_VERSION=$(git describe --abbrev=0 --tags)
         export BUILD_COMMIT=$(git rev-parse HEAD)
