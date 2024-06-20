@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/frontend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.2.0/frontend/Dockerfile
 name: frontend
 base: ubuntu@22.04
-version: '2.0.3'
+version: "2.2.0"
 summary: Kubeflow Pipelines Management Frontend
 description: |
     This rock runs a frontend development server.
@@ -32,12 +32,18 @@ parts:
   frontend:
     plugin: npm
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.3
+    source-tag: 2.2.0
     build-snaps:
-    - node/14/stable
+    - node/18/stable
+    build-packages:
+      - jq
     override-build: |
         # Change working directory to pipelines/frontend
         cd frontend
+        # The following should be removed once the rock is built from a version with the fix for
+        # https://github.com/kubeflow/pipelines/issues/10770
+        jq '.dependencies."@craco/craco"="^7.0.0"' package.json > package.tmp && mv package.tmp package.json
+        npm i --package-lock-only
         npm ci && npm run postinstall
         npm run build
         # Create a client directory in root and copy the build directory into it
@@ -48,12 +54,18 @@ parts:
   backend:
     plugin: npm
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.3
+    source-tag: 2.2.0
     build-snaps:
-    - node/14/stable
+    - node/18/stable
+    build-packages:
+      - jq
     override-build: |
         # Change working directory to pipelines/frontend
         cd ./frontend
+        # The following should be removed once the rock is built from a version with the fix for
+        # https://github.com/kubeflow/pipelines/issues/10770
+        jq '.dependencies."@craco/craco"="^7.0.0"' package.json > package.tmp && mv package.tmp package.json
+        npm i --package-lock-only
         mkdir -p ./server/dist
         export BUILD_VERSION=$(git describe --abbrev=0 --tags)
         export BUILD_COMMIT=$(git rev-parse HEAD)
@@ -75,4 +87,4 @@ parts:
   install-node:
     plugin: nil
     override-build: |
-      curl -s "https://nodejs.org/dist/v14.21.3/node-v14.21.3-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
+      curl -s "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
