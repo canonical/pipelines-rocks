@@ -35,6 +35,8 @@ parts:
     source-tag: 2.2.0
     build-snaps:
     - node/18/stable
+    build-packages:
+      - jq
     override-build: |
         # Change working directory to pipelines/frontend
         cd frontend
@@ -55,6 +57,8 @@ parts:
     source-tag: 2.2.0
     build-snaps:
     - node/18/stable
+    build-packages:
+      - jq
     override-build: |
         # Change working directory to pipelines/frontend
         cd ./frontend
