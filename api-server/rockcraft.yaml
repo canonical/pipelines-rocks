@@ -1,8 +1,8 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.5/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.2.0/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.0.5"
+version: "2.2.0"
 base: ubuntu@20.04
 license: Apache-2.0
 platforms:
@@ -10,10 +10,10 @@ platforms:
 run-user: _daemon_
 services:
   apiserver:
-    summary: "pipelines api-server service"
     override: merge
-    command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
+    summary: "pipelines api-server service"
     startup: disabled
+    command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
 
 
 package-repositories:
@@ -27,12 +27,14 @@ parts:
     plugin: nil
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
 
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.5
+    source-tag: 2.2.0
     build-snaps:
       - go/1.21/stable
     build-environment:
@@ -56,7 +58,7 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.5
+    source-tag: 2.2.0
     build-environment:
       - ARGO_VERSION: v3.3.10
     build-packages:
@@ -109,7 +111,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.5
+    source-tag: 2.2.0
     build-packages:
       - ca-certificates
       - wget
