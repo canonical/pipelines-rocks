@@ -82,7 +82,7 @@ parts:
 
       # Setup pip
       # TODO: Is this needed?
-      wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+      wget https://bootstrap.pypa.io/pip/3.7/get-pip.py && python3 get-pip.py
 
       cp $CRAFT_PART_SRC/backend/requirements.txt .
       python3 -m pip install -r requirements.txt --no-cache-dir
