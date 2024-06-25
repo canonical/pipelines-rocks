@@ -81,7 +81,7 @@ parts:
       PATH=.:$PATH
 
       # Setup pip
-      # TODO: Is this needed?
+      # This is required because the stage environment uses Python3.7. Do not update unless the upstream Dockerfile does.
       wget https://bootstrap.pypa.io/pip/3.7/get-pip.py && python3 get-pip.py
 
       cp $CRAFT_PART_SRC/backend/requirements.txt .
