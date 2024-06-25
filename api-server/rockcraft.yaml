@@ -1,8 +1,8 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.5/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.2.0/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.0.5"
+version: "2.2.0"
 base: ubuntu@20.04
 license: Apache-2.0
 platforms:
@@ -10,10 +10,12 @@ platforms:
 run-user: _daemon_
 services:
   apiserver:
-    summary: "pipelines api-server service"
     override: merge
-    command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
+    summary: "pipelines api-server service"
     startup: disabled
+    environment:
+      LOG_LEVEL: "info"
+    command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true --logLevel=$LOG_LEVEL
 
 
 package-repositories:
@@ -32,7 +34,7 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.5
+    source-tag: 2.2.0
     build-snaps:
       - go/1.21/stable
     build-environment:
@@ -56,9 +58,9 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.5
+    source-tag: 2.2.0
     build-environment:
-      - ARGO_VERSION: v3.3.10
+      - ARGO_VERSION: v3.4.16
     build-packages:
       - default-jdk
       - python3.7
@@ -79,8 +81,8 @@ parts:
       PATH=.:$PATH
 
       # Setup pip
-      # TODO: Is this needed?
-      wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+      # This is required because the stage environment uses Python3.7. Do not update unless the upstream Dockerfile does.
+      wget https://bootstrap.pypa.io/pip/3.7/get-pip.py && python3 get-pip.py
 
       cp $CRAFT_PART_SRC/backend/requirements.txt .
       python3 -m pip install -r requirements.txt --no-cache-dir
@@ -109,7 +111,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.5
+    source-tag: 2.2.0
     build-packages:
       - ca-certificates
       - wget
