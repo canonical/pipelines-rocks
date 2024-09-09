@@ -1,0 +1,26 @@
+name: knative-serving-deriver
+base: ubuntu@24.04
+version: v2.2.0
+summary: Kubeflow Pipelines Driver
+description: This image is used as part of the Charmed Kubeflow product
+license: Apache-2.0
+
+platforms:
+  amd64:
+
+services:
+  driver:
+    override: merge
+    command: "driver"
+    startup: enabled
+    user: ubuntu
+
+parts:
+  binary:
+    plugin: go
+    build-snaps:
+      - go/1.21/stable
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.2.0
+    source-depth: 1
+    source-subdir: backend/src/v2/cmd/driver
