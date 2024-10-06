@@ -1,0 +1,79 @@
+# Based on: https://github.com/minio/minio/blob/master/Dockerfile.release
+name: minio
+summary: It is API compatible with Amazon S3 cloud storage service.
+description: |
+  MinIO is a powerful, open-source object storage solution ideal for developers and organizations 
+  looking for a cost-effective way to manage large volumes of unstructured data.
+version: "1.0.0"
+license: Apache-2.0
+base: ubuntu@22.04
+run-user: _daemon_
+platforms:
+  amd64:
+
+services:
+  minio:
+    command: "/usr/bin/docker-entrypoint.sh minio"
+    override: replace
+    startup: enabled
+    environment:
+      MINIO_ACCESS_KEY_FILE: ""
+      MINIO_SECRET_KEY_FILE: ""
+      MINIO_ROOT_USER_FILE: ""
+      MINIO_ROOT_PASSWORD_FILE: ""
+      MINIO_KMS_SECRET_KEY_FILE: ""
+      MINIO_UPDATE_MINISIGN_PUBKEY: "RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav"
+      MINIO_CONFIG_ENV_FILE: "config.env"
+      MC_CONFIG_DIR: "/tmp/.mc"
+
+parts:
+  minio:
+    plugin: go
+    source: https://github.com/minio/minio.git
+    source-tag: RELEASE.2021-09-03T03-56-13Z
+    build-snaps:
+      - go/1.21/stable
+    build-packages:
+      - curl
+      - ca-certificates
+    build-environment:
+      - CGO_ENABLED: "0"
+      - GOOS: "linux"
+      - GOARCH: "amd64"
+    override-build: |
+      go install aead.dev/minisign/cmd/minisign@v0.2.1
+      
+      # Download minio binary and signature files
+      curl -s -q https://dl.min.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2021-09-03T03-56-13Z -o /go/bin/minio
+      curl -s -q https://dl.min.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2021-09-03T03-56-13Z.minisig -o /go/bin/minio.minisig
+      curl -s -q https://dl.min.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2021-09-03T03-56-13Z.sha256sum -o /go/bin/minio.sha256sum
+      chmod +x /go/bin/minio
+      
+      # Download mc binary and signature files
+      curl -s -q https://dl.min.io/client/mc/release/linux-amd64/mc -o /go/bin/mc
+      curl -s -q https://dl.min.io/client/mc/release/linux-amd64/mc.minisig -o /go/bin/mc.minisig
+      curl -s -q https://dl.min.io/client/mc/release/linux-amd64/mc.sha256sum -o /go/bin/mc.sha256sum
+      chmod +x /go/bin/mc
+      
+      Verify binary signature using public key "RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGavRUN"
+      /go/bin/minisign -Vqm /go/bin/minio -x /go/bin/minio.minisig -P RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav
+      /go/bin/minisign -Vqm /go/bin/mc -x /go/bin/mc.minisig -P RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav
+
+      cp $CRAFT_PART_SRC/dockerscripts/docker-entrypoint.sh $CRAFT_PART_INSTALL/usr/bin/docker-entrypoint.sh
+      chmod +x $CRAFT_PART_INSTALL/usr/bin/docker-entrypoint.sh
+
+  non-root-user:
+    plugin: nil
+    after: [ minio ]
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 minio
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g minio minio
+
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+       dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
