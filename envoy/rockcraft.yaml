@@ -1,0 +1,52 @@
+# Based on: https://github.com/envoyproxy/envoy/blob/release/v1.27/ci/Dockerfile-envoy
+name: envoy
+summary: Envoy is an open-source edge and service proxy designed for cloud-native applications.
+description: |
+  Envoy is essential for modern applications, particularly those built using microservices, 
+  by providing reliable, efficient, and secure service communication along with valuable observability features.
+version: "1.27.0"
+license: Apache-2.0
+base: ubuntu@22.04
+run-user: _daemon_
+
+services:
+  envoy:
+    override: replace
+    summary: "Entry point for envoy oci-image"
+    startup: enabled
+    command: "/envoy -c /envoyproxy_io_proxy.yaml"
+    user: envoy
+
+platforms:
+  amd64:
+
+parts:
+  envoy:
+    plugin: nil
+    source: https://github.com/envoyproxy/envoy.git
+    source-tag: release/v1.27
+    build-packages:
+      - curl
+    build-environment:
+      - ENVOY_VERSION: 1.27.0
+    override-build: |
+      cp $CRAFT_PART_SRC/configs/envoyproxy_io_proxy.yaml $CRAFT_PART_INSTALL
+      curl -L https://github.com/envoyproxy/envoy/releases/download/v${ENVOY_VERSION}/envoy-${ENVOY_VERSION}-linux-x86_64 \
+      -o $CRAFT_PART_INSTALL/envoy
+      chmod +x $CRAFT_PART_INSTALL/envoy 
+
+  non-root-user:
+    plugin: nil
+    after: [ envoy ]
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 envoy
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g envoy envoy
+
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+       dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
