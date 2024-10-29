@@ -1,21 +1,31 @@
-name: knative-serving-launcher
-base: ubuntu@24.04
+# Based on: https://github.com/kubeflow/pipelines/blob/2.2.0/backend/Dockerfile.launcher
+name: kfp-launcher
+base: ubuntu@22.04
 version: v2.2.0
 summary: Kubeflow Pipelines Launcher
-description: This image is used as part of the Charmed Kubeflow product
+description: |
+  Kubeflow Pipelines Launcher is a streamlined interface designed to simplify the creation, 
+  management, and deployment of machine learning workflows on Kubernetes.
 license: Apache-2.0
-
+run-user: _daemon_
 platforms:
   amd64:
-
 services:
   launcher:
     override: merge
-    command: "launcher-v2"
+    command: "/bin/launcher-v2"
     startup: enabled
     user: ubuntu
 
 parts:
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
   binary:
     plugin: go
     build-snaps:
@@ -23,4 +33,33 @@ parts:
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.2.0
     source-depth: 1
-    source-subdir: backend/src/v2/cmd/launcher-v2
+    build-environment:
+      - CGO_ENABLED: "0"
+      - GOOS: linux
+      - GOARCH: amd64
+    override-build: |
+      set -ex
+      go build -mod=mod -tags netgo -ldflags '-extldflags "-static"' -o launcher-v2 $CRAFT_PART_BUILD/backend/src/v2/cmd/launcher-v2/*.go
+      
+      $CRAFT_PART_BUILD/hack/install-go-licenses.sh
+      
+      go-licenses check $CRAFT_PART_BUILD/backend/src/v2/cmd/launcher-v2
+      go-licenses csv $CRAFT_PART_BUILD/backend/src/v2/cmd/launcher-v2 > licenses.csv && \
+      diff licenses.csv $CRAFT_PART_BUILD/backend/third_party_licenses/launcher.csv && \
+      go-licenses save $CRAFT_PART_BUILD/backend/src/v2/cmd/launcher-v2 --save_path NOTICES
+
+    override-prime: |
+      mkdir -p $CRAFT_PRIME/bin/third_party
+      cp -r $CRAFT_PART_BUILD/launcher-v2 $CRAFT_PRIME/bin
+      cp -r $CRAFT_PART_BUILD/licenses.csv $CRAFT_PRIME/bin/third_party
+      cp -r $CRAFT_PART_BUILD/NOTICES $CRAFT_PRIME/bin/third_party
+
+  non-root-user:
+    plugin: nil
+    after: [ binary ]
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
+    override-prime: |
+      craftctl default
