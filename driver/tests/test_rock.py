@@ -3,11 +3,10 @@
 #
 #
 
+import pytest
 import random
 import string
 import subprocess
-
-import pytest
 from charmed_kubeflow_chisme.rock import CheckRock
 
 
@@ -44,6 +43,18 @@ def test_rock(rock_test_env):
             "ls",
             "-la",
             "/bin/driver",
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            "docker",
+            "run",
+            LOCAL_ROCK_IMAGE,
+            "exec",
+            "ls",
+            "-la",
+            "/bin/third_party/licenses.csv",
         ],
         check=True,
     )
