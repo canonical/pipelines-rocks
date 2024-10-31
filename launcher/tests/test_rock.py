@@ -47,3 +47,15 @@ def test_rock(rock_test_env):
         ],
         check=True,
     )
+    subprocess.run(
+        [
+            "docker",
+            "run",
+            LOCAL_ROCK_IMAGE,
+            "exec",
+            "ls",
+            "-la",
+            "/bin/third_party/licenses.csv",
+        ],
+        check=True,
+    )
