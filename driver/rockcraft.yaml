@@ -1,5 +1,5 @@
 # Based on: https://github.com/kubeflow/pipelines/blob/2.2.0/backend/Dockerfile.driver
-name: kfp-driver
+name: knative-serving-deriver
 base: ubuntu@24.04
 version: v2.2.0
 summary: Kubeflow Pipelines Driver
