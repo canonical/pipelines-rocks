@@ -1,9 +1,9 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.2.0/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.3.0/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.2.0"
-base: ubuntu@20.04
+version: "2.3.0"
+base: ubuntu@22.04
 license: Apache-2.0
 platforms:
   amd64:
@@ -19,7 +19,6 @@ services:
 
 
 package-repositories:
-  # Required for build-packages=python3.7
   - type: apt
     ppa: deadsnakes/ppa
     priority: always
@@ -34,7 +33,7 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.2.0
+    source-tag: 2.3.0
     build-snaps:
       - go/1.21/stable
     build-environment:
@@ -58,15 +57,15 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.2.0
+    source-tag: 2.3.0
     build-environment:
-      - ARGO_VERSION: v3.4.16
+      - ARGO_VERSION: v3.4.17
     build-packages:
       - default-jdk
-      - python3.7
+      - python3.8
       # required to build google-cloud-profiler wheel for pyproject.toml-based projects
-      - python3.7-dev
-      - python3.7-distutils
+      - python3.8-dev
+      - python3.8-distutils
       - jq
       - wget
 
@@ -77,12 +76,11 @@ parts:
       rm -rf ./*
 
       # Create a symbolic link so the rest of this script is like upstream
-      ln -s /usr/bin/python3.7 python3
+      ln -s /usr/bin/python3.8 python3
       PATH=.:$PATH
 
       # Setup pip
-      # This is required because the stage environment uses Python3.7. Do not update unless the upstream Dockerfile does.
-      wget https://bootstrap.pypa.io/pip/3.7/get-pip.py && python3 get-pip.py
+      wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
       cp $CRAFT_PART_SRC/backend/requirements.txt .
       python3 -m pip install -r requirements.txt --no-cache-dir
@@ -111,7 +109,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.2.0
+    source-tag: 2.3.0
     build-packages:
       - ca-certificates
       - wget
