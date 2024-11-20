@@ -1,9 +1,9 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.2.0/backend/Dockerfile.persistenceagent
+# Based on: https://github.com/kubeflow/pipelines/blob/2.3.0/backend/Dockerfile.persistenceagent
 name: persistenceagent
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend persistence agent of Kubeflow pipelines.
-version: "2.2.0"
+version: "2.3.0"
 license: Apache-2.0
 base: ubuntu@22.04
 platforms:
@@ -35,7 +35,7 @@ parts:
     plugin: go
     source: https://github.com/kubeflow/pipelines
     source-type: git
-    source-tag: 2.2.0
+    source-tag: 2.3.0
     build-snaps:
       - go/1.21/stable
     build-packages:
