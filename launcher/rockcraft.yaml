@@ -57,10 +57,10 @@ parts:
       $GOBIN/go-licenses save $CRAFT_PART_BUILD/backend/src/v2/cmd/launcher-v2 --save_path NOTICES
 
     override-prime: |
-      mkdir -p $CRAFT_PRIME/bin/third_party
+      mkdir -p $CRAFT_PRIME/third_party
       cp -r $CRAFT_PART_BUILD/launcher-v2 $CRAFT_PRIME/bin
-      cp -r $CRAFT_PART_BUILD/licenses.csv $CRAFT_PRIME/bin/third_party
-      cp -r $CRAFT_PART_BUILD/NOTICES $CRAFT_PRIME/bin/third_party
+      cp -r $CRAFT_PART_BUILD/licenses.csv $CRAFT_PRIME/third_party
+      cp -r $CRAFT_PART_BUILD/NOTICES $CRAFT_PRIME/third_party
 
   # not-root user for this rock should be 'appuser'  
   non-root-user:
