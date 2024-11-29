@@ -30,12 +30,13 @@ parts:
 
   # This part builds the client side of the frontend container image
   frontend:
-    plugin: npm
+    plugin: nil
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.3.0
-    build-snaps:
-    - node/18/stable
     override-build: |
+        # Install 18.18.2 due to issues with later 18.x versions
+        # See https://github.com/kubeflow/pipelines/pull/10794
+        curl -s "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
         # Change working directory to pipelines/frontend
         cd frontend
         npm ci && npm run postinstall
@@ -46,12 +47,13 @@ parts:
 
   # This part builds the server side of the frontend container image
   backend:
-    plugin: npm
+    plugin: nil
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.3.0
-    build-snaps:
-    - node/18/stable
     override-build: |
+        # Install 18.18.2 due to issues with later 18.x versions
+        # See https://github.com/kubeflow/pipelines/pull/10794
+        curl -s "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
         # Change working directory to pipelines/frontend
         cd ./frontend
         mkdir -p ./server/dist
