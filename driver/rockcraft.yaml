@@ -45,26 +45,23 @@ parts:
       - bash      
     override-build: |
       set -xe
+
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      mkdir -p $CRAFT_PART_INSTALL/third_party
       
-      go build -tags netgo -ldflags '-extldflags "-static"' -o driver ./backend/src/v2/cmd/launcher-v2/*.go
+      go build -tags netgo -ldflags '-extldflags "-static"' -o $CRAFT_PART_INSTALL/bin/driver $CRAFT_PART_BUILD/backend/src/v2/cmd/driver/*.go
 
       ./hack/install-go-licenses.sh
 
       $GOBIN/go-licenses check $CRAFT_PART_BUILD/backend/src/v2/cmd/driver
-      $GOBIN/go-licenses csv $CRAFT_PART_BUILD/backend/src/v2/cmd/driver > licenses.csv && \
-      diff licenses.csv $CRAFT_PART_BUILD/backend/third_party_licenses/driver.csv && \
-      $GOBIN/go-licenses save $CRAFT_PART_BUILD/backend/src/v2/cmd/driver --save_path NOTICES
-
-    override-prime: |
-      mkdir -p $CRAFT_PRIME/third_party
-      cp -r $CRAFT_PART_BUILD/driver $CRAFT_PRIME/bin
-      cp -r $CRAFT_PART_BUILD/licenses.csv $CRAFT_PRIME/third_party
-      cp -r $CRAFT_PART_BUILD/NOTICES $CRAFT_PRIME/third_party
+      $GOBIN/go-licenses csv $CRAFT_PART_BUILD/backend/src/v2/cmd/driver > $CRAFT_PART_INSTALL/third_party/licenses.csv && \
+      diff $CRAFT_PART_INSTALL/third_party/licenses.csv $CRAFT_PART_BUILD/backend/third_party_licenses/driver.csv && \
+      $GOBIN/go-licenses save $CRAFT_PART_BUILD/backend/src/v2/cmd/driver --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
 
   # not-root user for this rock should be 'appuser'  
   non-root-user:
     plugin: nil
-    after: [ launcher ]
+    after: [ driver ]
     overlay-script: |
       # Create a user in the $CRAFT_OVERLAY chroot
       groupadd -R $CRAFT_OVERLAY -g 1001 appuser
