@@ -25,7 +25,7 @@ def test_rock():
             "exec",
             "ls",
             "-la",
-            "/third_party",
+            "/third_party/licenses.csv",
         ],
         check=True,
     )
@@ -40,7 +40,7 @@ def test_rock():
             "exec",
             "ls",
             "-la",
-            "/third_party/NOTICES",
+            "/third_party/NOTICES/",
         ],
         check=True,
     )
