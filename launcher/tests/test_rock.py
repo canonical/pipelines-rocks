@@ -25,7 +25,7 @@ def test_rock():
             "exec",
             "ls",
             "-la",
-            "/bin/third_party",
+            "/third_party",
         ],
         check=True,
     )
