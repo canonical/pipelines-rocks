@@ -1,0 +1,92 @@
+# Based on: https://github.com/google/ml-metadata/blob/v1.14.0/ml_metadata/tools/docker_server/Dockerfile
+name: ml-metadata-store-server
+summary: Part of the ML Metadata (MLMD) framework.
+description: |
+  ML Metadata is a framework for managing and tracking metadata associated with ML workflows. 
+  It is part of the TensorFlow Extended (TFX) ecosystem, but it can be used independently as well.
+version: "1.14.0"
+license: Apache-2.0
+base: ubuntu@20.04
+run-user: _daemon_
+platforms:
+  amd64:
+
+services:
+  mlmd:
+    override: replace
+    summary: "ml metadata store service"
+    startup: enabled
+    user: ubuntu
+    environment:
+      GRPC_PORT: "8080"
+      METADATA_STORE_SERVER_CONFIG_FILE: ""
+    command: "/bin/metadata_store_serve --grpc_port=${GRPC_PORT} --metadata_store_server_config_file=${METADATA_STORE_SERVER_CONFIG_FILE}"
+
+parts:
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > \
+       ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
+  mlmd:
+    plugin: nil
+    source: https://github.com/google/ml-metadata.git
+    source-tag: v1.14.0
+    build-packages:
+      - build-essential
+      - clang
+      - cmake
+      - make
+      - musl-dev
+      - ca-certificates
+      - openssl
+      - curl
+      - unzip
+      - software-properties-common
+      - git
+      - python3-distutils
+      - python-is-python3
+      - python3-dev
+    stage-packages:
+      - tzdata
+    build-environment:
+      - BAZEL_VERSION: 5.3.0
+    override-build: |
+      set -xe
+      
+      curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -O https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+      
+      curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -o /LICENSE.txt https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE
+      
+      chmod +x bazel-*.sh
+
+      ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+      
+      rm -f ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+      
+      cd $CRAFT_PART_SRC
+      
+      bazel build -c opt --verbose_failures --jobs=6 --action_env=PATH \
+      --define=grpc_no_ares=true \
+      //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17"
+
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      mkdir -p $CRAFT_PART_INSTALL/third_party
+
+      cp -RL $CRAFT_PART_SRC/bazel-src/external/libmysqlclient $CRAFT_PART_INSTALL/third_party/mariadb-connector-c
+
+      cp $CRAFT_PART_SRC/bazel-bin/ml_metadata/metadata_store/metadata_store_server $CRAFT_PART_INSTALL/bin/metadata_store_server
+    prime:
+      - bin/metadata_store_server
+      - third_party/mariadb-connector-c
+
+  non-root-user:
+    plugin: nil
+    after: [mlmd]
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
