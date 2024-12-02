@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.0.3/frontend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.3.0/frontend/Dockerfile
 name: frontend
 base: ubuntu@22.04
-version: '2.0.3'
+version: '2.3.0'
 summary: Kubeflow Pipelines Management Frontend
 description: |
     This rock runs a frontend development server.
@@ -30,12 +30,13 @@ parts:
 
   # This part builds the client side of the frontend container image
   frontend:
-    plugin: npm
+    plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.3
-    build-snaps:
-    - node/14/stable
+    source-tag: 2.3.0
     override-build: |
+        # Install 18.18.2 due to issues with later 18.x versions
+        # See https://github.com/kubeflow/pipelines/pull/10794
+        curl -s "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
         # Change working directory to pipelines/frontend
         cd frontend
         npm ci && npm run postinstall
@@ -46,12 +47,13 @@ parts:
 
   # This part builds the server side of the frontend container image
   backend:
-    plugin: npm
+    plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.0.3
-    build-snaps:
-    - node/14/stable
+    source-tag: 2.3.0
     override-build: |
+        # Install 18.18.2 due to issues with later 18.x versions
+        # See https://github.com/kubeflow/pipelines/pull/10794
+        curl -s "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
         # Change working directory to pipelines/frontend
         cd ./frontend
         mkdir -p ./server/dist
@@ -75,4 +77,4 @@ parts:
   install-node:
     plugin: nil
     override-build: |
-      curl -s "https://nodejs.org/dist/v14.21.3/node-v14.21.3-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
+      curl -s "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
