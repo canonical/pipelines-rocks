@@ -65,8 +65,6 @@ parts:
 
       ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
       
-      rm -f ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
-      
       cd $CRAFT_PART_SRC
       
       bazel build -c opt --verbose_failures --jobs=6 --action_env=PATH \
