@@ -3,7 +3,7 @@ name: kfp-launcher
 summary: Kubeflow Pipelines Launcher
 description: |
   Kubeflow Pipelines Launcher is a streamlined interface designed to simplify the creation, management, and deployment of machine learning workflows on Kubernetes.
-version: v2.2.0
+version: 2.2.0
 license: Apache-2.0
 base: ubuntu@22.04
 run-user: _daemon_
