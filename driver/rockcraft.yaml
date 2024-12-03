@@ -2,7 +2,7 @@
 name: kfp-driver
 summary: Kubeflow Pipelines Driver
 description: This image is used as part of the Charmed Kubeflow product
-version: v2.2.0
+version: 2.2.0
 license: Apache-2.0
 base: ubuntu@22.04
 run-user: _daemon_
