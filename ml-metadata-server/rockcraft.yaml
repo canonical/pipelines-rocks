@@ -1,0 +1,58 @@
+# Based on: https://github.com/open-telemetry/opentelemetry-collector-releases/blob/main/distributions/otelcol/Dockerfile
+name: ml-metadata-server
+summary: Part of the ML Metadata (MLMD) framework.
+description: |
+  ML Metadata is a framework for managing and tracking metadata associated with ML workflows. 
+  It is part of the TensorFlow Extended (TFX) ecosystem, but it can be used independently as well.
+version: "1.14.0"
+license: Apache-2.0
+base: ubuntu@20.04
+run-user: _daemon_
+
+platforms:
+  amd64:
+
+parts:
+  server:
+    plugin: nil
+    source: https://github.com/google/ml-metadata.git
+    source-tag: v1.14.0
+    build-packages:
+      - build-essential
+      - clang
+      - cmake
+      - make
+      - musl-dev
+      - ca-certificates
+      - openssl
+      - curl
+      - unzip
+      - software-properties-common
+      - git
+      - python3-distutils
+      - python-is-python3
+      - python3-dev
+    build-environment:
+      - BAZEL_VERSION: 5.3.0
+    override-build: |
+      mkdir /bazel && cd /bazel
+      curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -O https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh && \
+      curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -o /bazel/LICENSE.txt https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
+      chmod +x bazel-*.sh && \
+      ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh && \
+      cd .. && rm -f ./bazel/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+      
+      cd $CRAFT_PART_SRC
+      
+      bazel build -c opt --action_env=PATH \
+      --define=grpc_no_ares=true \
+      //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17"
+
+
+  security-team-requirement:
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+       dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
