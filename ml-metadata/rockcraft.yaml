@@ -1,12 +1,12 @@
 # Based on: https://github.com/google/ml-metadata/blob/v1.14.0/ml_metadata/tools/docker_server/Dockerfile
-name: ml-metadata-store-server
+name: ml-metadata
 summary: Part of the ML Metadata (MLMD) framework.
 description: |
   ML Metadata is a framework for managing and tracking metadata associated with ML workflows. 
   It is part of the TensorFlow Extended (TFX) ecosystem, but it can be used independently as well.
 version: "1.14.0"
 license: Apache-2.0
-base: ubuntu@20.04
+base: ubuntu@22.04
 run-user: _daemon_
 platforms:
   amd64:
@@ -49,11 +49,13 @@ parts:
       - git
       - python3-distutils
       - python-is-python3
+      - wget
       - python3-dev
+      - emacs
     stage-packages:
       - tzdata
     build-environment:
-      - BAZEL_VERSION: 5.3.0
+      - BAZEL_VERSION: 5.4.0
     override-build: |
       set -xe
       
@@ -66,10 +68,24 @@ parts:
       ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
       
       cd $CRAFT_PART_SRC
+
+      sed -i 's/651a768cd51627f58aa6de7039aba9ddab22f4b0450521169800555269447840/bfa2109d6d655fcff34c3539990bed76d05cebbd86828f1f21b0a2678d93cfa1/g' WORKSPACE
       
-      bazel build -c opt --verbose_failures --jobs=6 --action_env=PATH \
-      --define=grpc_no_ares=true \
-      //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17"
+      sed -i 's/ac37cf5c0d80b5605176fc0f29e87b12f00be693/06e004b3dcc72b18fef3ad3124c0406c13ff6d77/g' WORKSPACE
+      
+      sed -i 's/tools_deps = False/tools_deps = True/g' WORKSPACE
+
+      sed -i 's/java_deps = False/java_deps = True/g' WORKSPACE
+
+      sed -i 's/testing_deps = False/testing_deps = True/g' WORKSPACE
+
+      sed -i 's/zetasql_deps_step_1()/zetasql_deps_step_1(add_bazel_version = True)/g' WORKSPACE
+
+      #sed -i 's/././g' WORKSPACE
+
+      bazel clean --expunge
+      
+      bazel build -c opt --verbose_failures --jobs=6 --action_env=PATH --define=grpc_no_ares=true //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17" --conlyopt="-std=gnu17" --cxxopt="-w" --conlyopt="-w" --spawn_strategy="local"
 
       mkdir -p $CRAFT_PART_INSTALL/bin
       mkdir -p $CRAFT_PART_INSTALL/third_party
