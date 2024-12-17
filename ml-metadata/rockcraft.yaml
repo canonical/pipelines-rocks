@@ -6,7 +6,8 @@ description: |
   It is part of the TensorFlow Extended (TFX) ecosystem, but it can be used independently as well.
 version: "1.14.0"
 license: Apache-2.0
-base: ubuntu@22.04
+# Build does not work with ubuntu@22.04. Issue: https://github.com/google/ml-metadata/issues/210
+base: ubuntu@20.04
 run-user: _daemon_
 platforms:
   amd64:
@@ -16,7 +17,6 @@ services:
     override: replace
     summary: "ml metadata store service"
     startup: enabled
-    user: ubuntu
     environment:
       GRPC_PORT: "8080"
       METADATA_STORE_SERVER_CONFIG_FILE: ""
@@ -85,7 +85,7 @@ parts:
 
       bazel clean --expunge
       
-      bazel build -c opt --verbose_failures --jobs=6 --action_env=PATH --define=grpc_no_ares=true //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17" --conlyopt="-std=gnu17" --cxxopt="-w" --conlyopt="-w" --spawn_strategy="local"
+      bazel build -c opt --action_env=PATH --define=grpc_no_ares=true //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17"
 
       mkdir -p $CRAFT_PART_INSTALL/bin
       mkdir -p $CRAFT_PART_INSTALL/third_party
@@ -93,14 +93,3 @@ parts:
       cp -RL $CRAFT_PART_SRC/bazel-src/external/libmysqlclient $CRAFT_PART_INSTALL/third_party/mariadb-connector-c
 
       cp $CRAFT_PART_SRC/bazel-bin/ml_metadata/metadata_store/metadata_store_server $CRAFT_PART_INSTALL/bin/metadata_store_server
-    prime:
-      - bin/metadata_store_server
-      - third_party/mariadb-connector-c
-
-  non-root-user:
-    plugin: nil
-    after: [mlmd]
-    overlay-script: |
-      # Create a user in the $CRAFT_OVERLAY chroot
-      groupadd -R $CRAFT_OVERLAY -g 1001 ubuntu
-      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g ubuntu ubuntu
