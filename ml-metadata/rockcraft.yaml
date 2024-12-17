@@ -49,9 +49,7 @@ parts:
       - git
       - python3-distutils
       - python-is-python3
-      - wget
       - python3-dev
-      - emacs
     stage-packages:
       - tzdata
     build-environment:
