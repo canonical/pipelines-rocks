@@ -20,7 +20,7 @@ services:
     environment:
       GRPC_PORT: "8080"
       METADATA_STORE_SERVER_CONFIG_FILE: ""
-    command: "/bin/metadata_store_serve --grpc_port=${GRPC_PORT} --metadata_store_server_config_file=${METADATA_STORE_SERVER_CONFIG_FILE}"
+    command: "/bin/metadata_store_server --grpc_port=${GRPC_PORT} --metadata_store_server_config_file=${METADATA_STORE_SERVER_CONFIG_FILE}"
 
 parts:
   security-team-requirement:
