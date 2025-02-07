@@ -73,4 +73,4 @@ parts:
   install-node:
     plugin: nil
     override-build: |
-      curl -s ""https://nodejs.org/dist/v22.13.1/node-v22.13.1-linux-x64.tar.gz | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
+      curl -s "https://nodejs.org/dist/v22.13.1/node-v22.13.1-linux-x64.tar.gz | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
