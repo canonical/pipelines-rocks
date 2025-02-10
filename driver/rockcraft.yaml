@@ -49,7 +49,7 @@ parts:
       mkdir -p $CRAFT_PART_INSTALL/bin
       mkdir -p $CRAFT_PART_INSTALL/third_party
       
-      go build -tags netgo -ldflags '-extldflags "-static"' -o $CRAFT_PART_INSTALL/bin/driver $CRAFT_PART_BUILD/backend/src/v2/cmd/driver/*.go
+      go build -tags netgo -gcflags="" -ldflags '-extldflags "-static"' -o $CRAFT_PART_INSTALL/bin/driver $CRAFT_PART_BUILD/backend/src/v2/cmd/driver/*.go
 
       ./hack/install-go-licenses.sh
 
