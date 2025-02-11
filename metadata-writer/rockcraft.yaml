@@ -44,7 +44,7 @@ parts:
     build-environment: 
     - PARTS_PYTHON_INTERPRETER: python3.9
 
-  python3-is-python3.8:
+  python3-is-python3.9:
     plugin: nil
     override-build: |
       # Ensure `python3` is an executable command in our primed image by making
