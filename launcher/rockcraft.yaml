@@ -57,3 +57,4 @@ parts:
       $GOBIN/go-licenses csv $CRAFT_PART_BUILD/backend/src/v2/cmd/launcher-v2 > $CRAFT_PART_INSTALL/third_party/licenses.csv && \
       diff $CRAFT_PART_INSTALL/third_party/licenses.csv $CRAFT_PART_BUILD/backend/third_party_licenses/launcher.csv && \
       $GOBIN/go-licenses save $CRAFT_PART_BUILD/backend/src/v2/cmd/launcher-v2 --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
+
