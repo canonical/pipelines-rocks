@@ -1,9 +1,9 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.4.0/backend/Dockerfile.persistenceagent
+# Based on: https://github.com/kubeflow/pipelines/blob/2.4.1/backend/Dockerfile.persistenceagent
 name: persistenceagent
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend persistence agent of Kubeflow pipelines.
-version: "2.4.0"
+version: "2.4.1"
 license: Apache-2.0
 base: ubuntu@22.04
 platforms:
@@ -35,7 +35,7 @@ parts:
     plugin: go
     source: https://github.com/kubeflow/pipelines
     source-type: git
-    source-tag: 2.4.0
+    source-tag: 2.4.1
     build-snaps:
       - go/1.22/stable
     build-packages:
@@ -46,10 +46,4 @@ parts:
     override-build: |
       set -xe
       cd $CRAFT_PART_SRC
-      mkdir -p $CRAFT_PART_INSTALL/third_party
       GO111MODULE=on go build -o $CRAFT_PART_INSTALL/bin/persistence_agent backend/src/agent/persistence/*.go
-      ./hack/install-go-licenses.sh
-      $GOBIN/go-licenses check ./backend/src/agent/persistence
-      $GOBIN/go-licenses csv ./backend/src/agent/persistence > $CRAFT_PART_INSTALL/third_party/licenses.csv && \
-       diff $CRAFT_PART_INSTALL/third_party/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
-       $GOBIN/go-licenses save ./backend/src/agent/persistence --save_path $CRAFT_PART_INSTALL/third_party/NOTICES
