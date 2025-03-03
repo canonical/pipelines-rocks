@@ -1,8 +1,8 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.4.0/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.4.1/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.4.0"
+version: "2.4.1"
 base: ubuntu@22.04
 license: Apache-2.0
 platforms:
@@ -35,7 +35,7 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.0
+    source-tag: 2.4.1
     build-snaps:
       - go/1.22/stable
     build-environment:
@@ -59,7 +59,7 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.0
+    source-tag: 2.4.1
     build-environment:
       - ARGO_VERSION: v3.4.17
     build-packages:
@@ -111,7 +111,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.0
+    source-tag: 2.4.1
     build-packages:
       - ca-certificates
       - wget
@@ -123,9 +123,6 @@ parts:
       cp -r $CRAFT_STAGE/config/ $CRAFT_PART_INSTALL/config
       mkdir -p $CRAFT_PART_INSTALL/bin
       cp $CRAFT_STAGE/apiserver $CRAFT_PART_INSTALL/bin/apiserver
-      mkdir -p $CRAFT_PART_INSTALL/third_party
-      cp $CRAFT_STAGE/licenses.csv $CRAFT_PART_INSTALL/third_party/licenses.csv
-      cp -r $CRAFT_STAGE/NOTICES/ $CRAFT_PART_INSTALL/third_party/NOTICES
       cp -r $CRAFT_STAGE/samples/ $CRAFT_PART_INSTALL/samples
 
       sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
