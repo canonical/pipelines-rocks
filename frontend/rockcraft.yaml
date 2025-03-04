@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.4.0/frontend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.4.1/frontend/Dockerfile
 name: frontend
 base: ubuntu@22.04
-version: '2.4.0'
+version: '2.4.1'
 summary: Kubeflow Pipelines Management Frontend
 description: |
     This rock runs a frontend development server.
@@ -32,7 +32,7 @@ parts:
   frontend:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.0
+    source-tag: 2.4.1
     override-build: |
         curl -s "https://nodejs.org/dist/v22.13.1/node-v22.13.1-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
         # Change working directory to pipelines/frontend
@@ -47,7 +47,7 @@ parts:
   backend:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.0
+    source-tag: 2.4.1
     override-build: |
         curl -s "https://nodejs.org/dist/v22.13.1/node-v22.13.1-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
         # Change working directory to pipelines/frontend
