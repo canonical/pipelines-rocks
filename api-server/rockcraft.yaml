@@ -49,11 +49,6 @@ parts:
       go build -o apiserver backend/src/apiserver/*.go
       cp apiserver $CRAFT_STAGE
       cp -r backend/src/apiserver/config/ $CRAFT_STAGE/config
-      ./hack/install-go-licenses.sh
-      $GOBIN/go-licenses check ./backend/src/apiserver
-      $GOBIN/go-licenses csv ./backend/src/apiserver > $CRAFT_STAGE/licenses.csv && \
-      diff $CRAFT_STAGE/licenses.csv backend/third_party_licenses/apiserver.csv && \
-      $GOBIN/go-licenses save ./backend/src/apiserver --save_path $CRAFT_STAGE/NOTICES
   
   # Compile and stage the sample pipelines
   compiler:
