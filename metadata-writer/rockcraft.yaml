@@ -1,9 +1,9 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.4.0/backend/metadata_writer/Dockerfile
+# Based on: https://github.com/kubeflow/pipelines/blob/2.4.1/backend/metadata_writer/Dockerfile
 name: metadata-writer
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This service logs the metadata for KFP components and pipelines.
-version: "2.4.0"
+version: "2.4.1"
 license: Apache-2.0
 base: ubuntu@22.04
 run-user: _daemon_
@@ -34,7 +34,7 @@ parts:
     plugin: python
     source: https://github.com/kubeflow/pipelines.git
     source-subdir: backend/metadata_writer
-    source-tag: 2.4.0
+    source-tag: 2.4.1
     stage-packages:
       # sync this python version to the base image in the Dockerfile.
       # Also keep this in sync with PARTS_PYTHON_INTERPRETER below.
@@ -55,7 +55,7 @@ parts:
   copy-files:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.0
+    source-tag: 2.4.1
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/kfp/metadata_writer/
       cp  ${CRAFT_PART_SRC}/backend/metadata_writer/src/* ${CRAFT_PART_INSTALL}/kfp/metadata_writer
