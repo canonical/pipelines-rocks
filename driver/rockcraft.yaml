@@ -1,8 +1,8 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.4.0/backend/Dockerfile.driver
+# Based on: https://github.com/kubeflow/pipelines/blob/2.4.1/backend/Dockerfile.driver
 name: kfp-driver
 summary: Kubeflow Pipelines Driver
 description: This image is used as part of the Charmed Kubeflow product
-version: 2.4.0
+version: 2.4.1
 license: Apache-2.0
 base: ubuntu@22.04
 run-user: _daemon_
@@ -30,7 +30,7 @@ parts:
     source-type: git    
     source: https://github.com/kubeflow/pipelines.git
     source-depth: 1
-    source-tag: 2.4.0   
+    source-tag: 2.4.1   
     build-snaps:
       - go/1.22/stable
     build-packages:
@@ -47,13 +47,5 @@ parts:
       set -xe
 
       mkdir -p $CRAFT_PART_INSTALL/bin
-      mkdir -p $CRAFT_PART_INSTALL/third_party
       
       go build -tags netgo -gcflags="${GCFLAGS}" -ldflags '-extldflags "-static"' -o $CRAFT_PART_INSTALL/bin/driver $CRAFT_PART_BUILD/backend/src/v2/cmd/driver/*.go
-
-      ./hack/install-go-licenses.sh
-
-      $GOBIN/go-licenses check $CRAFT_PART_BUILD/backend/src/v2/cmd/driver
-      $GOBIN/go-licenses csv $CRAFT_PART_BUILD/backend/src/v2/cmd/driver > $CRAFT_PART_INSTALL/third_party/licenses.csv && \
-      diff $CRAFT_PART_INSTALL/third_party/licenses.csv $CRAFT_PART_BUILD/backend/third_party_licenses/driver.csv && \
-      $GOBIN/go-licenses save $CRAFT_PART_BUILD/backend/src/v2/cmd/driver --save_path $CRAFT_PART_INSTALL/third_party/NOTICES

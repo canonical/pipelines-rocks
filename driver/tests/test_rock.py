@@ -15,36 +15,6 @@ def test_rock():
     rock_version = check_rock.get_version()
     LOCAL_ROCK_IMAGE = f"{rock_image}:{rock_version}"
 
-    # assert the rock contains the expected files
-    subprocess.run(
-        [
-            "docker",
-            "run",
-            "--rm",
-            LOCAL_ROCK_IMAGE,
-            "exec",
-            "ls",
-            "-la",
-            "/third_party/licenses.csv",
-        ],
-        check=True,
-    )
-
-    # Assert the rock contains the expected file in /third_party
-    subprocess.run(
-        [
-            "docker",
-            "run",
-            "--rm",
-            LOCAL_ROCK_IMAGE,
-            "exec",
-            "ls",
-            "-la",
-            "/third_party/NOTICES/",
-        ],
-        check=True,
-    )
-
     subprocess.run(
         ["docker", "run", "--rm", LOCAL_ROCK_IMAGE, "exec", "ls", "-la", "/bin/driver"],
         check=True,
