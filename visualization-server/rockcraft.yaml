@@ -1,10 +1,10 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.3.0/backend/Dockerfile.visualization
+# Based on: https://github.com/kubeflow/pipelines/blob/2.4.1/backend/Dockerfile.visualization
 name: visualization-server
 summary: ml-pipeline/visualization-server
 description: |
     ml-pipeline/visualization-server
     https://github.com/kubeflow/pipelines/tree/master/backend
-version: "2.3.0"
+version: "2.4.1"
 license: Apache-2.0
 base: ubuntu@22.04
 platforms:
@@ -35,7 +35,7 @@ parts:
     plugin: python
     source: https://github.com/kubeflow/pipelines.git
     source-subdir: backend/src/apiserver/visualization
-    source-tag: 2.3.0
+    source-tag: 2.4.1
     stage-packages:
       # sync this python version to that in the tensorflow 
       # base image of Dockerfile.visualization.  Also keep this
@@ -62,6 +62,9 @@ parts:
     - curl
     - tar
     - openssl
+    build-environment:
+    # Adding this env variable prevents the gcloud sdk installer from showing prompts
+    - CLOUDSDK_CORE_DISABLE_PROMPTS: 1
     override-build: |
       set -x
       curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
@@ -72,6 +75,6 @@ parts:
   files:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.3.0
+    source-tag: 2.4.1
     override-build: |
       cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
