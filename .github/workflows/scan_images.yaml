@@ -12,7 +12,7 @@ jobs:
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/get-published-images-scan-and-report.yaml@main
     strategy:
       matrix:
-        branch: [main, track/2.0]
+        branch: [main, track/2.3]
     secrets:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
     with:
