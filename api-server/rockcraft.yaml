@@ -3,7 +3,7 @@ name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
 version: "2.5.0"
-base: ubuntu@24.04
+base: ubuntu@22.04
 license: Apache-2.0
 platforms:
   amd64:
