@@ -1,9 +1,9 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.4.1/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.5.0/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.4.1"
-base: ubuntu@22.04
+version: "2.5.0"
+base: ubuntu@24.04
 license: Apache-2.0
 platforms:
   amd64:
@@ -35,9 +35,9 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.1
+    source-tag: 2.5.0
     build-snaps:
-      - go/1.22/stable
+      - go/1.23/stable
     build-environment:
       - GO111MODULE: "on"
     build-packages:
@@ -54,9 +54,9 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.1
+    source-tag: 2.5.0
     build-environment:
-      - ARGO_VERSION: v3.4.17
+      - ARGO_VERSION: v3.5.14
     build-packages:
       - default-jdk
       - python3.9
@@ -94,10 +94,10 @@ parts:
       cp $CRAFT_PART_SRC/backend/src/apiserver/config/sample_config.json ./samples/
 
       set -e; \
-      < ./samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
+      < ./samples/sample_config.json jq ".pipelines[].file" --raw-output | while read pipeline_yaml; do \
       pipeline_py=".${pipeline_yaml%.yaml}"; \
       which python3; \
-      python3 "$pipeline_py"; \
+      echo "Compiling: \"$pipeline_py\"" && python3 "$pipeline_py" && echo -n "Output: " && ls "$pipeline_py.yaml"; \
       done
 
       cp -r ./samples $CRAFT_STAGE/samples
@@ -106,7 +106,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.1
+    source-tag: 2.5.0
     build-packages:
       - ca-certificates
       - wget
