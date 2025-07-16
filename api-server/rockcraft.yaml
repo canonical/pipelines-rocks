@@ -17,7 +17,7 @@ services:
       LOG_LEVEL: "info"
     command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true --logLevel=$LOG_LEVEL
 
-# Adds Deadsnakes ppa package repo to install python3.8 interpreter
+# Adds Deadsnakes ppa package repo to install python3.9 interpreter
 # Required when using a python version different from the default in the base
 # Ref: https://documentation.ubuntu.com/rockcraft/en/latest/reference/plugins/python_plugin/#dependencies
 package-repositories:
