@@ -111,6 +111,13 @@ parts:
       # These are set at build in dockerfile (those are just links to examples)
       - COMMIT_SHA: unknown
       - TAG_NAME: unknown
+    overlay-packages:
+      # NOTE: "ca-certificates" installed among "overlay-packages" instead of
+      # "stage-packages" as a workaround to this issue:
+      # https://github.com/canonical/rockcraft/issues/334
+      - ca-certificates
+    stage-packages:
+      - wget
     override-build: |
       cp -r $CRAFT_STAGE/config/ $CRAFT_PART_INSTALL/config
       mkdir -p $CRAFT_PART_INSTALL/bin
@@ -119,10 +126,3 @@ parts:
 
       sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
       sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
-    overlay-packages:
-      # NOTE: "ca-certificates" installed among "overlay-packages" instead of
-      # "stage-packages" as a workaround to this issue:
-      # https://github.com/canonical/rockcraft/issues/334
-      - ca-certificates
-    stage-packages:
-      - wget
