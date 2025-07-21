@@ -4,4 +4,3 @@ integrations:
     replace-image:
       - file: charms/kfp-api/metadata.yaml
         path: resources.oci-image.upstream-source
-
