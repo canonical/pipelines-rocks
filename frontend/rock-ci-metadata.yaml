@@ -1,0 +1,8 @@
+integrations:
+  - consumer-repository: https://github.com/canonical/kfp-operators.git
+
+    replace-image:
+      - file: charms/kfp-profile-controller/src/default-custom-images.json
+        path: frontend
+      - file: charms/kfp-ui/metadata.yaml
+        path: resources.ml-pipeline-ui.upstream-source
