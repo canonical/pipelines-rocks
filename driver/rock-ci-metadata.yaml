@@ -1,0 +1,6 @@
+integrations:
+  - consumer-repository: https://github.com/canonical/kfp-operators.git
+   
+    replace-image:
+      - file: charms/kfp-api/config.yaml
+        path: options.driver-image.default
