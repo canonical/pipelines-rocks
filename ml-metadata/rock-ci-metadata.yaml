@@ -1,0 +1,6 @@
+integrations:
+  - consumer-repository: https://github.com/canonical/mlmd-operator.git
+
+    replace-image:
+      - file: metadata.yaml
+        path: resources.oci-image.upstream-source
