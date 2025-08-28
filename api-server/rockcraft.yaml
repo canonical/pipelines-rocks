@@ -1,8 +1,8 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.4.1/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.5.0/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.4.1"
+version: "2.5.0"
 base: ubuntu@22.04
 license: Apache-2.0
 platforms:
@@ -17,7 +17,7 @@ services:
       LOG_LEVEL: "info"
     command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true --logLevel=$LOG_LEVEL
 
-# Adds Deadsnakes ppa package repo to install python3.8 interpreter
+# Adds Deadsnakes ppa package repo to install python3.9 interpreter
 # Required when using a python version different from the default in the base
 # Ref: https://documentation.ubuntu.com/rockcraft/en/latest/reference/plugins/python_plugin/#dependencies
 package-repositories:
@@ -35,9 +35,9 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.1
+    source-tag: 2.5.0
     build-snaps:
-      - go/1.22/stable
+      - go/1.23/stable
     build-environment:
       - GO111MODULE: "on"
     build-packages:
@@ -54,9 +54,9 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.1
+    source-tag: 2.5.0
     build-environment:
-      - ARGO_VERSION: v3.4.17
+      - ARGO_VERSION: v3.5.14
     build-packages:
       - default-jdk
       - python3.9
@@ -94,10 +94,10 @@ parts:
       cp $CRAFT_PART_SRC/backend/src/apiserver/config/sample_config.json ./samples/
 
       set -e; \
-      < ./samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
+      < ./samples/sample_config.json jq ".pipelines[].file" --raw-output | while read pipeline_yaml; do \
       pipeline_py=".${pipeline_yaml%.yaml}"; \
       which python3; \
-      python3 "$pipeline_py"; \
+      echo "Compiling: \"$pipeline_py\"" && python3 "$pipeline_py" && echo -n "Output: " && ls "$pipeline_py.yaml"; \
       done
 
       cp -r ./samples $CRAFT_STAGE/samples
@@ -106,14 +106,18 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.4.1
-    build-packages:
-      - ca-certificates
-      - wget
+    source-tag: 2.5.0
     build-environment:
       # These are set at build in dockerfile (those are just links to examples)
       - COMMIT_SHA: unknown
       - TAG_NAME: unknown
+    overlay-packages:
+      # NOTE: "ca-certificates" installed among "overlay-packages" instead of
+      # "stage-packages" as a workaround to this issue:
+      # https://github.com/canonical/rockcraft/issues/334
+      - ca-certificates
+    stage-packages:
+      - wget
     override-build: |
       cp -r $CRAFT_STAGE/config/ $CRAFT_PART_INSTALL/config
       mkdir -p $CRAFT_PART_INSTALL/bin
