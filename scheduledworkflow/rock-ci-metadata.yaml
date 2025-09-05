@@ -4,3 +4,9 @@ integrations:
     replace-image:
       - file: charms/kfp-schedwf/metadata.yaml
         path: resources.oci-image.upstream-source
+
+    service-spec:
+      - file: charms/kfp-schedwf/src/service-config.yaml
+        command:
+          path: user
+          value: _daemon_
