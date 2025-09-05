@@ -10,4 +10,3 @@ integrations:
         command:
           path: user
           value: _daemon_
-
