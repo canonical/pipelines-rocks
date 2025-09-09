@@ -15,4 +15,4 @@ integrations:
         command:
           path: command
           value: >
-            node /server/dist/server.js /client/ 3000
+              node /server/dist/server.js /client/ 3000
