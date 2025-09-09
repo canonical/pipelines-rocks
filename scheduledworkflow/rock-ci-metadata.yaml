@@ -7,6 +7,6 @@ integrations:
 
     service-spec:
       - file: charms/kfp-schedwf/src/service-config.yaml
-        command:
+        user:
           path: user
           value: _daemon_
