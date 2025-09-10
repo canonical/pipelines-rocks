@@ -6,3 +6,9 @@ integrations:
         path: visualization_server
       - file: charms/kfp-viz/metadata.yaml
         path: resources.oci-image.upstream-source
+
+    service-spec:
+      - file: charms/kfp-viz/src/service-config.yaml
+        user:
+          path: user
+          value: _daemon_
