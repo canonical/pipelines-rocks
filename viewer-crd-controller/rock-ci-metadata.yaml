@@ -4,3 +4,9 @@ integrations:
     replace-image:
       - file: charms/kfp-viewer/metadata.yaml
         path: resources.kfp-viewer-image.upstream-source
+
+    service-spec:
+      - file: charms/kfp-viewer/src/service-config.yaml
+        user:
+          path: user
+          value: _daemon_
