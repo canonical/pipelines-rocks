@@ -9,9 +9,6 @@ integrations:
 
     service-spec:
       - file: charms/kfp-ui/src/service-config.yaml
-        user:
-          path: user
-          value: _daemon_
         command:
           path: command
           value: >
