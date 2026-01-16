@@ -1,10 +1,10 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.5.0/backend/Dockerfile.visualization
+# Based on: https://github.com/kubeflow/pipelines/blob/2.15.0/backend/Dockerfile.visualization
 name: visualization-server
 summary: ml-pipeline/visualization-server
 description: |
     ml-pipeline/visualization-server
     https://github.com/kubeflow/pipelines/tree/master/backend
-version: "2.5.0"
+version: "2.15.0"
 license: Apache-2.0
 base: ubuntu@22.04
 platforms:
@@ -16,12 +16,6 @@ services:
     summary: "visualization server service"
     startup: enabled
     command: "python3 /server.py"
-
-package-repositories:
-  - type: apt
-    ppa: deadsnakes/ppa
-    priority: always
-
 parts:
   security-team-requirement:
     plugin: nil
@@ -35,26 +29,23 @@ parts:
     plugin: python
     source: https://github.com/kubeflow/pipelines.git
     source-subdir: backend/src/apiserver/visualization
-    source-tag: 2.5.0
+    source-tag: 2.15.0
+    build-packages:
+      - python3.11
+      - python3.11-venv
     stage-packages:
-      # sync this python version to that in the tensorflow 
-      # base image of Dockerfile.visualization.  Also keep this
-      # in sync with PARTS_PYTHON_INTERPRETER below
-    - python3.8-venv
-    - python3.8-dev
+      - python3.11
+      - python3.11-venv
     python-requirements:
     - requirements.txt
     build-environment: 
-    - PARTS_PYTHON_INTERPRETER: python3.8
-  
-  python3-is-python3.8:
-    plugin: nil
+    - PARTS_PYTHON_INTERPRETER: python3.11
     override-build: |
-      # Ensure `python3` is an executable command in our primed image by making
-      # a symbolic link
-      mkdir -p $CRAFT_PART_INSTALL/usr/bin/
-      ln -s /usr/bin/python3.8 $CRAFT_PART_INSTALL/usr/bin/python3
-
+      craftctl default
+      # Ensure Python 3.11 is the default version
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/bin/
+      ln -fs /usr/bin/python3.11 ${CRAFT_PART_INSTALL}/usr/bin/python3
+  
   gcloud:
     plugin: nil
     stage-packages:
@@ -75,6 +66,6 @@ parts:
   files:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.5.0
+    source-tag: 2.15.0
     override-build: |
       cp -r backend/src/apiserver/visualization/* $CRAFT_PART_INSTALL
