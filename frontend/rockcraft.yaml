@@ -1,7 +1,7 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.5.0/frontend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.15.0/frontend/Dockerfile
 name: frontend
 base: ubuntu@22.04
-version: '2.5.0'
+version: '2.15.0'
 summary: Kubeflow Pipelines Management Frontend
 description: |
     This rock runs a frontend development server.
@@ -32,9 +32,9 @@ parts:
   frontend:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.5.0
+    source-tag: 2.15.0
     override-build: |
-        curl -s "https://nodejs.org/dist/v22.13.1/node-v22.13.1-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
+        curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
         # Change working directory to pipelines/frontend
         cd frontend
         npm ci && npm run postinstall
@@ -47,9 +47,9 @@ parts:
   backend:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.5.0
+    source-tag: 2.15.0
     override-build: |
-        curl -s "https://nodejs.org/dist/v22.13.1/node-v22.13.1-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
+        curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
         # Change working directory to pipelines/frontend
         cd ./frontend
         mkdir -p ./server/dist
@@ -60,10 +60,6 @@ parts:
         echo $BUILD_DATE > ./server/dist/BUILD_DATE
         echo $BUILD_VERSION > ./server/dist/TAG_NAME
 
-        # Generate the dependency licenses files (one for the UI and one for the webserver),
-        # concatenate them to one file under ./src/server
-        ./scripts/yarn-licenses.sh
-
         # Create a server directory in root and copy the server directory into it
         cp -r server ${CRAFT_PART_INSTALL}/
         cd ${CRAFT_PART_INSTALL}/server/
@@ -73,4 +69,4 @@ parts:
   install-node:
     plugin: nil
     override-build: |
-      curl -s "https://nodejs.org/dist/v22.13.1/node-v22.13.1-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
+      curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
