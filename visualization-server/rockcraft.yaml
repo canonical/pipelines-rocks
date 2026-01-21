@@ -6,7 +6,10 @@ description: |
     https://github.com/kubeflow/pipelines/tree/master/backend
 version: "2.15.0"
 license: Apache-2.0
-base: ubuntu@22.04
+base: ubuntu@24.04
+package-repositories:
+  - type: apt
+    ppa: deadsnakes/ppa
 platforms:
     amd64:
 run-user: _daemon_
@@ -22,7 +25,7 @@ parts:
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
       (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-24.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
 
   python:
@@ -31,10 +34,8 @@ parts:
     source-subdir: backend/src/apiserver/visualization
     source-tag: 2.15.0
     build-packages:
-      - python3.11
       - python3.11-venv
     stage-packages:
-      - python3.11
       - python3.11-venv
     python-requirements:
     - requirements.txt
