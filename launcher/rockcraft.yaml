@@ -1,9 +1,9 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.5.0/backend/Dockerfile.launcher
+# Based on: https://github.com/kubeflow/pipelines/blob/2.15.0/backend/Dockerfile.launcher
 name: kfp-launcher
 summary: Kubeflow Pipelines Launcher
 description: |
   Kubeflow Pipelines Launcher is a streamlined interface designed to simplify the creation, management, and deployment of machine learning workflows on Kubernetes.
-version: 2.5.0
+version: 2.15.0
 license: Apache-2.0
 base: ubuntu@22.04
 run-user: _daemon_
@@ -31,16 +31,15 @@ parts:
     source-type: git    
     source: https://github.com/kubeflow/pipelines.git
     source-depth: 1
-    source-tag: 2.5.0   
+    source-tag: 2.15.0   
     build-snaps:
-      - go/1.23/stable
+      - go/1.24/stable
     build-packages:
       - apt
       - bash
     build-environment:
       - CGO_ENABLED: 0
       - GOOS: linux
-      - GOARCH: amd64
     stage-packages:
       - bash      
     override-build: |
