@@ -1,8 +1,8 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.5.0/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.15.0/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.5.0"
+version: "2.15.0"
 base: ubuntu@22.04
 license: Apache-2.0
 platforms:
@@ -35,9 +35,9 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.5.0
+    source-tag: 2.15.0
     build-snaps:
-      - go/1.23/stable
+      - go/1.24/stable
     build-environment:
       - GO111MODULE: "on"
     build-packages:
@@ -54,15 +54,15 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.5.0
+    source-tag: 2.15.0
     build-environment:
-      - ARGO_VERSION: v3.5.14
+      - ARGO_VERSION: v3.7.3
     build-packages:
       - default-jdk
-      - python3.9
+      - python3.11
       # required to build google-cloud-profiler wheel for pyproject.toml-based projects
-      - python3.9-dev
-      - python3.9-distutils
+      - python3.11-dev
+      - python3.11-distutils
       - jq
       - wget
 
@@ -72,21 +72,24 @@ parts:
       # The build steps below copy everything that is needed to the working directory
       rm -rf ./*
 
-      # Create a symbolic link so the rest of this script is like upstream
-      ln -s /usr/bin/python3.9 python3
-      PATH=.:$PATH
+      # Ensure Python 3.11 is the default version
+      update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+      update-alternatives --set python3 /usr/bin/python3.11
+
+      # Install setuptools for Python 3.11 now that it's the default
+      apt-get update && apt-get install -y python3-setuptools
 
       # Setup pip
       wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+      python3 -m pip install --upgrade pip setuptools wheel
 
       cp $CRAFT_PART_SRC/backend/requirements.txt .
       python3 -m pip install -r requirements.txt --no-cache-dir
 
       # Fetch argo CLI
-      # TODO: Is this used?
-      curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
-      gunzip argo-linux-amd64.gz
-      chmod +x argo-linux-amd64
+      curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
+      gunzip argo-linux-amd64.gz && \
+      chmod +x argo-linux-amd64 && \
       mv ./argo-linux-amd64 $CRAFT_PART_INSTALL/argo
 
       # Compile the sample pipelines
@@ -106,7 +109,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.5.0
+    source-tag: 2.15.0
     build-environment:
       # These are set at build in dockerfile (those are just links to examples)
       - COMMIT_SHA: unknown
