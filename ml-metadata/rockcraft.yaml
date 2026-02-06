@@ -77,3 +77,14 @@ parts:
       cp -RL $CRAFT_PART_SRC/bazel-src/external/libmysqlclient $CRAFT_PART_INSTALL/third_party/mariadb-connector-c
 
       cp $CRAFT_PART_SRC/bazel-bin/ml_metadata/metadata_store/metadata_store_server $CRAFT_PART_INSTALL/bin/metadata_store_server
+
+      # make config dir
+      mkdir -p $CRAFT_PART_INSTALL/config
+
+
+non-root-user:
+  plugin: nil
+  override-prime: |
+    craftctl default
+    install -d -o 584792 -g 584792 -m 770 \
+      config
