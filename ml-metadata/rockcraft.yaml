@@ -82,9 +82,9 @@ parts:
       mkdir -p $CRAFT_PART_INSTALL/config
 
 
-non-root-user:
-  plugin: nil
-  override-prime: |
-    craftctl default
-    install -d -o 584792 -g 584792 -m 770 \
-      config
+  non-root-user:
+    plugin: nil
+    override-prime: |
+      craftctl default
+      install -d -o 584792 -g 584792 -m 770 \
+        config

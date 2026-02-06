@@ -43,9 +43,9 @@ parts:
         mkdir -p ${CRAFT_PART_INSTALL}/client
         cp -a build/* ${CRAFT_PART_INSTALL}/client
 
-      # make config dir
-      mkdir -p $CRAFT_PART_INSTALL/config
-      mkdir -p $CRAFT_PART_INSTALL/etc/config
+        # make config dir
+        mkdir -p $CRAFT_PART_INSTALL/config
+        mkdir -p $CRAFT_PART_INSTALL/etc/config
 
 
   # This part builds the server side of the frontend container image
@@ -77,10 +77,10 @@ parts:
       curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
 
 
-non-root-user:
-  plugin: nil
-  override-prime: |
-    craftctl default
-    install -d -o 584792 -g 584792 -m 770 \
-      config etc/config
+  non-root-user:
+    plugin: nil
+    override-prime: |
+      craftctl default
+      install -d -o 584792 -g 584792 -m 770 \
+        config etc/config
 
