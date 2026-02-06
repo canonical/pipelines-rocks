@@ -1,4 +1,4 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.5.0/backend/Dockerfile.persistenceagent
+# Based on: https://github.com/kubeflow/pipelines/blob/2.15.0/backend/Dockerfile.persistenceagent
 name: persistenceagent
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
@@ -35,9 +35,9 @@ parts:
     plugin: go
     source: https://github.com/kubeflow/pipelines
     source-type: git
-    source-tag: 2.5.0
+    source-tag: 2.15.0
     build-snaps:
-      - go/1.23/stable
+      - go/1.24/stable
     build-packages:
       - git
       - openssl
