@@ -3,7 +3,7 @@ name: persistenceagent
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend persistence agent of Kubeflow pipelines.
-version: "2.5.0"
+version: "2.15.0"
 license: Apache-2.0
 base: ubuntu@22.04
 platforms:
