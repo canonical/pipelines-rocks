@@ -4,7 +4,7 @@ summary: Part of the ML Metadata (MLMD) framework.
 description: |
   ML Metadata is a framework for managing and tracking metadata associated with ML workflows. 
   It is part of the TensorFlow Extended (TFX) ecosystem, but it can be used independently as well.
-version: "1.14.0"
+version: "1.17.1"
 license: Apache-2.0
 # Build does not work with ubuntu@22.04. Issue: https://github.com/google/ml-metadata/issues/210
 base: ubuntu@20.04
@@ -34,7 +34,7 @@ parts:
   mlmd:
     plugin: nil
     source: https://github.com/google/ml-metadata.git
-    source-tag: v1.14.0
+    source-tag: v1.17.1
     build-packages:
       - build-essential
       - clang
@@ -53,7 +53,7 @@ parts:
     stage-packages:
       - tzdata
     build-environment:
-      - BAZEL_VERSION: 5.3.0
+      - BAZEL_VERSION: 6.5.0
     override-build: |
       set -xe
       
