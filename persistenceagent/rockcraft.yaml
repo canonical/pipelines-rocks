@@ -23,14 +23,6 @@ services:
     command: bash -c 'persistence_agent --logtostderr=true --namespace=$NAMESPACE --ttlSecondsAfterWorkflowFinish=$TTL_SECONDS_AFTER_WORKFLOW_FINISH --numWorker $NUM_WORKERS --executionType $EXECUTIONTYPE --logLevel=$LOG_LEVEL'
 
 parts:
-  security-team-requirement:
-    plugin: nil
-    override-build: |
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
-      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
-
   persistenceagent:
     plugin: go
     source: https://github.com/kubeflow/pipelines
@@ -49,8 +41,9 @@ parts:
       GO111MODULE=on go build -o $CRAFT_PART_INSTALL/bin/persistence_agent backend/src/agent/persistence/*.go
 
   non-root-user:
+    after:
+      - persistenceagent
     plugin: nil
-
     override-build: |
       # make config dir
       mkdir -p $CRAFT_PART_INSTALL/var/run/secrets/kubeflow/tokens
@@ -60,3 +53,12 @@ parts:
       install -d -o 584792 -g 584792 -m 770 var/run/secrets/kubeflow/tokens
 
 
+  security-team-requirement:
+    after:
+      - non-root-user
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
