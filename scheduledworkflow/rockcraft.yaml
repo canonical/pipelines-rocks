@@ -37,3 +37,14 @@ parts:
       - GO111MODULE: "on"
     override-build: |
       go build -o $CRAFT_PART_INSTALL/bin/controller backend/src/crd/controller/scheduledworkflow/*.go
+
+      # make config dir
+      mkdir -p $CRAFT_PART_INSTALL/var/run/secrets/kubeflow/tokens
+
+
+  non-root-user:
+    plugin: nil
+    override-prime: |
+      craftctl default
+      install -d -o 584792 -g 584792 -m 770 \
+        var/run/secrets/kubeflow/tokens
