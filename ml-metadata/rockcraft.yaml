@@ -6,7 +6,8 @@ description: |
   It is part of the TensorFlow Extended (TFX) ecosystem, but it can be used independently as well.
 version: "1.14.0"
 license: Apache-2.0
-# Build does not work with ubuntu@22.04. Issue: https://github.com/google/ml-metadata/issues/210
+# Note: Previous builds failed on ubuntu@22.04 (see https://github.com/google/ml-metadata/issues/210).
+# This rock is based on ubuntu@24.04, which has been validated to build successfully.
 base: ubuntu@24.04
 run-user: _daemon_
 platforms:
@@ -47,7 +48,6 @@ parts:
       - unzip
       - software-properties-common
       - git
-      # - python3-distutils
       - python-is-python3
       - python3-dev
     stage-packages:
@@ -66,6 +66,10 @@ parts:
       ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
       
       cd $CRAFT_PART_SRC
+
+      # Fix ZetaSQL checksum issue
+      # The checksum in the WORKSPACE file is outdated and doesn't match the actual archive
+      sed -i 's/651a768cd51627f58aa6de7039aba9ddab22f4b0450521169800555269447840/86f81591ab5ec20457a5394eb2c5c981e6f6c89f4c49c211d096c3acffec1eb1/' WORKSPACE
 
       bazel clean --expunge
       
