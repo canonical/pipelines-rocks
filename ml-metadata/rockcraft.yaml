@@ -79,10 +79,10 @@ parts:
 
       bazel clean --expunge
       
-      # Build with -fpermissive to allow older Abseil code to compile with GCC 13
-      # ml-metadata v1.14.0 uses Abseil commit 940c06c which has scoped enum syntax
-      # incompatible with GCC 13's strict C++ standard enforcement (Ubuntu 24.04)
-      bazel build -c opt --action_env=PATH --define=grpc_no_ares=true //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17 -fpermissive"
+      # Use C++14 for compatibility with older Abseil code
+      # ml-metadata v1.14.0 uses Abseil commit 940c06c which was designed for C++14
+      # GCC 13 (Ubuntu 24.04) has stricter C++17 enforcement that breaks old Abseil macros
+      bazel build -c opt --action_env=PATH --define=grpc_no_ares=true //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++14"
 
       mkdir -p $CRAFT_PART_INSTALL/bin
       mkdir -p $CRAFT_PART_INSTALL/third_party
