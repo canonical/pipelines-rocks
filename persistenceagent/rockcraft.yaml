@@ -48,15 +48,15 @@ parts:
       cd $CRAFT_PART_SRC
       GO111MODULE=on go build -o $CRAFT_PART_INSTALL/bin/persistence_agent backend/src/agent/persistence/*.go
 
-  non-root-user:
-    plugin: nil
-
-    override-build: |
       # make config dir
       mkdir -p $CRAFT_PART_INSTALL/var/run/secrets/kubeflow/tokens
 
-    override-prime: |
-      craftctl default
-      install -d -o 584792 -g 584792 -m 770 var/run/secrets/kubeflow/tokens
+
+non-root-user:
+  plugin: nil
+  override-prime: |
+    craftctl default
+    install -d -o 584792 -g 584792 -m 770 \
+      var/run/secrets/kubeflow/tokens
 
 
