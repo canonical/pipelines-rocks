@@ -79,7 +79,7 @@ parts:
 
       bazel clean --expunge
       
-      bazel build -c opt --action_env=PATH --define=grpc_no_ares=true //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17"
+      bazel build -c opt --action_env=PATH --define=grpc_no_ares=true //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17" --cxxopt="-fpermissive"
 
       mkdir -p $CRAFT_PART_INSTALL/bin
       mkdir -p $CRAFT_PART_INSTALL/third_party
