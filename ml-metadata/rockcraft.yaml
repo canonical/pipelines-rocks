@@ -82,7 +82,7 @@ parts:
       # Build with -fpermissive to allow older Abseil code to compile with GCC 13
       # ml-metadata v1.14.0 uses Abseil commit 940c06c which has scoped enum syntax
       # incompatible with GCC 13's strict C++ standard enforcement (Ubuntu 24.04)
-      bazel build -c opt --action_env=PATH --define=grpc_no_ares=true //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17" --cxxopt="-fpermissive"
+      bazel build -c opt --action_env=PATH --define=grpc_no_ares=true //ml_metadata/metadata_store:metadata_store_server --cxxopt="-std=c++17 -fpermissive"
 
       mkdir -p $CRAFT_PART_INSTALL/bin
       mkdir -p $CRAFT_PART_INSTALL/third_party
