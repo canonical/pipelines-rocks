@@ -9,7 +9,7 @@ on:
 jobs:
 
   on-push:
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/get-rocks-modified-and-build-scan-test-publish.yaml@main
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/get-rocks-modified-and-build-scan-test-publish.yaml@kf-8442-support-unmaintained-bases
     permissions:
       pull-requests: read
     secrets: inherit
