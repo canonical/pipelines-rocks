@@ -81,7 +81,6 @@ parts:
       # make config dir
       mkdir -p $CRAFT_PART_INSTALL/config
 
-
   non-root-user:
     plugin: nil
     override-prime: |
