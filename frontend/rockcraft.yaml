@@ -20,53 +20,74 @@ services:
     environment:
       API_SERVER_ADDRESS: http://localhost:3001
 parts:
+  install-node:
+    plugin: nil
+    override-build: |
+      curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
+
+  # This part builds the client side of the frontend container image
+  frontend:
+    after:
+      - install-node
+    plugin: nil
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.15.0
+    override-build: |
+      curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
+      # Change working directory to pipelines/frontend
+      cd frontend
+      npm ci && npm run postinstall
+      npm run build
+      # Create a client directory in root and copy the build directory into it
+      mkdir -p ${CRAFT_PART_INSTALL}/client
+      cp -a build/* ${CRAFT_PART_INSTALL}/client
+
+  # This part builds the server side of the frontend container image
+  backend:
+    after:
+      - install-node
+    plugin: nil
+    source: https://github.com/kubeflow/pipelines.git
+    source-tag: 2.15.0
+    override-build: |
+      curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
+      # Change working directory to pipelines/frontend
+      cd ./frontend
+      mkdir -p ./server/dist
+      export BUILD_VERSION=$(git describe --abbrev=0 --tags)
+      export BUILD_COMMIT=$(git rev-parse HEAD)
+      export BUILD_DATE=$(date "+%F-%H-%M-%S")
+      echo $BUILD_COMMIT > ./server/dist/COMMIT_HASH
+      echo $BUILD_DATE > ./server/dist/BUILD_DATE
+      echo $BUILD_VERSION > ./server/dist/TAG_NAME
+
+      # Create a server directory in root and copy the server directory into it
+      cp -r server ${CRAFT_PART_INSTALL}/
+      cd ${CRAFT_PART_INSTALL}/server/
+      npm ci
+      npm run build
+
+  non-root-user:
+    after:
+      - frontend
+      - backend
+    plugin: nil
+    override-build: |
+      # make config dir
+      mkdir -p $CRAFT_PART_INSTALL/config
+      mkdir -p $CRAFT_PART_INSTALL/etc/config    
+
+    override-prime: |
+      craftctl default
+      install -d -o 584792 -g 584792 -m 770 \
+        config etc/config
+
   security-team-requirement:
+    after:
+      - non-root-user
     plugin: nil
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
       (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
       dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
-
-  # This part builds the client side of the frontend container image
-  frontend:
-    plugin: nil
-    source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.15.0
-    override-build: |
-        curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
-        # Change working directory to pipelines/frontend
-        cd frontend
-        npm ci && npm run postinstall
-        npm run build
-        # Create a client directory in root and copy the build directory into it
-        mkdir -p ${CRAFT_PART_INSTALL}/client
-        cp -a build/* ${CRAFT_PART_INSTALL}/client
-
-  # This part builds the server side of the frontend container image
-  backend:
-    plugin: nil
-    source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.15.0
-    override-build: |
-        curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
-        # Change working directory to pipelines/frontend
-        cd ./frontend
-        mkdir -p ./server/dist
-        export BUILD_VERSION=$(git describe --abbrev=0 --tags)
-        export BUILD_COMMIT=$(git rev-parse HEAD)
-        export BUILD_DATE=$(date "+%F-%H-%M-%S")
-        echo $BUILD_COMMIT > ./server/dist/COMMIT_HASH
-        echo $BUILD_DATE > ./server/dist/BUILD_DATE
-        echo $BUILD_VERSION > ./server/dist/TAG_NAME
-
-        # Create a server directory in root and copy the server directory into it
-        cp -r server ${CRAFT_PART_INSTALL}/
-        cd ${CRAFT_PART_INSTALL}/server/
-        npm ci
-        npm run build
-
-  install-node:
-    plugin: nil
-    override-build: |
-      curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
