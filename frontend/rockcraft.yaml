@@ -82,7 +82,6 @@ parts:
       install -d -o 584792 -g 584792 -m 770 \
         config etc/config
 
-
   security-team-requirement:
     after:
       - non-root-user
