@@ -23,14 +23,6 @@ services:
     command: "/bin/metadata_store_server --grpc_port=${GRPC_PORT} --metadata_store_server_config_file=${METADATA_STORE_SERVER_CONFIG_FILE}"
 
 parts:
-  security-team-requirement:
-    plugin: nil
-    override-build: |
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > \
-       ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
-
   mlmd:
     plugin: nil
     source: https://github.com/google/ml-metadata.git
@@ -82,8 +74,20 @@ parts:
       mkdir -p $CRAFT_PART_INSTALL/config
 
   non-root-user:
+    after:
+      - mlmd
     plugin: nil
     override-prime: |
       craftctl default
       install -d -o 584792 -g 584792 -m 770 \
         config
+
+  security-team-requirement:
+    after:
+      - non-root-user
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > \
+       ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
