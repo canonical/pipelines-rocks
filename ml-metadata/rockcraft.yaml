@@ -4,7 +4,7 @@ summary: Part of the ML Metadata (MLMD) framework.
 description: |
   ML Metadata is a framework for managing and tracking metadata associated with ML workflows. 
   It is part of the TensorFlow Extended (TFX) ecosystem, but it can be used independently as well.
-version: "1.14.0"
+version: "1.17.1"
 license: Apache-2.0
 # Build does not work with ubuntu@22.04. Issue: https://github.com/google/ml-metadata/issues/210
 base: ubuntu@20.04
@@ -23,18 +23,10 @@ services:
     command: "/bin/metadata_store_server --grpc_port=${GRPC_PORT} --metadata_store_server_config_file=${METADATA_STORE_SERVER_CONFIG_FILE}"
 
 parts:
-  security-team-requirement:
-    plugin: nil
-    override-build: |
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > \
-       ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
-
   mlmd:
     plugin: nil
     source: https://github.com/google/ml-metadata.git
-    source-tag: v1.14.0
+    source-tag: v1.17.1
     build-packages:
       - build-essential
       - clang
@@ -53,7 +45,7 @@ parts:
     stage-packages:
       - tzdata
     build-environment:
-      - BAZEL_VERSION: 5.3.0
+      - BAZEL_VERSION: 6.5.0
     override-build: |
       set -xe
       
@@ -77,3 +69,25 @@ parts:
       cp -RL $CRAFT_PART_SRC/bazel-src/external/libmysqlclient $CRAFT_PART_INSTALL/third_party/mariadb-connector-c
 
       cp $CRAFT_PART_SRC/bazel-bin/ml_metadata/metadata_store/metadata_store_server $CRAFT_PART_INSTALL/bin/metadata_store_server
+
+      # make config dir
+      mkdir -p $CRAFT_PART_INSTALL/config
+
+  non-root-user:
+    after:
+      - mlmd
+    plugin: nil
+    override-prime: |
+      craftctl default
+      install -d -o 584792 -g 584792 -m 770 \
+        config
+
+  security-team-requirement:
+    after:
+      - non-root-user
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > \
+       ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
