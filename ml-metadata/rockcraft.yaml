@@ -7,7 +7,7 @@ description: |
 version: "1.17.1"
 license: Apache-2.0
 # Build does not work with ubuntu@22.04. Issue: https://github.com/google/ml-metadata/issues/210
-base: ubuntu@20.04
+base: ubuntu@24.04
 run-user: _daemon_
 platforms:
   amd64:
@@ -39,7 +39,7 @@ parts:
       - unzip
       - software-properties-common
       - git
-      - python3-distutils
+      # - python3-distutils
       - python-is-python3
       - python3-dev
     stage-packages:
