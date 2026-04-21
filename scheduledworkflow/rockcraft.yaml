@@ -1,9 +1,9 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.15.0/backend/Dockerfile.scheduledworkflow
+# Based on: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile.scheduledworkflow
 name: scheduledworkflow
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend scheduled workflow of Kubeflow pipelines.
-version: "2.15.0"
+version: "2.16.0"
 license: Apache-2.0
 base: ubuntu@22.04
 platforms:
@@ -13,18 +13,22 @@ services:
   controller:
     override: replace
     summary: "scheduled workflow controller service"
-    command: bash -c '/bin/controller --logtostderr=true --namespace=${NAMESPACE} --logLevel=${LOG_LEVEL}'
+    command: bash -c '/bin/controller --logtostderr=true --namespace=${NAMESPACE} --logLevel=${LOG_LEVEL} --clientQPS=${CLIENT_QPS} --clientBurst=${CLIENT_BURST} --recurringRunResyncIntervalSeconds=${RESYNC_INTERVAL_SECONDS} --metricsPort=${METRICS_PORT}'
     startup: enabled
     environment:
       NAMESPACE: ""
       CRON_SCHEDULE_TIMEZONE: UTC
       LOG_LEVEL: "info"
+      CLIENT_QPS: "5"
+      CLIENT_BURST: "10"
+      RESYNC_INTERVAL_SECONDS: "30"
+      METRICS_PORT: "9090"
 
 parts:
   controller:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.15.0
+    source-tag: 2.16.0
     build-snaps:
       - go/1.24/stable
     build-environment:
