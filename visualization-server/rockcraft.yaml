@@ -63,7 +63,7 @@ parts:
       set -x
 
       curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz" \
-       -o tmp/google-cloud-sdk.tar.gz
+       -o /tmp/google-cloud-sdk.tar.gz
       echo "${CLOUD_SDK_SHA256}  /tmp/google-cloud-sdk.tar.gz" | sha256sum -c -
       mkdir -p "${CRAFT_PART_INSTALL}"/usr/local/gcloud
       tar -C "${CRAFT_PART_INSTALL}"/usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
