@@ -1,8 +1,8 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.15.0/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.15.0"
+version: "2.16.0"
 base: ubuntu@22.04
 license: Apache-2.0
 platforms:
@@ -35,7 +35,7 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.15.0
+    source-tag: 2.16.0
     build-snaps:
       - go/1.24/stable
     build-environment:
@@ -54,7 +54,7 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.15.0
+    source-tag: 2.16.0
     build-environment:
       - ARGO_VERSION: v3.7.3
     build-packages:
@@ -87,7 +87,9 @@ parts:
       python3 -m pip install -r requirements.txt --no-cache-dir
 
       # Fetch argo CLI
-      curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
+      curl -sL -H "Accept: application/octet-stream" \
+      https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz \
+      -o argo-linux-amd64.gz && \
       gunzip argo-linux-amd64.gz && \
       chmod +x argo-linux-amd64 && \
       mv ./argo-linux-amd64 $CRAFT_PART_INSTALL/argo
@@ -109,7 +111,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.15.0
+    source-tag: 2.16.0
     build-environment:
       # These are set at build in dockerfile (those are just links to examples)
       - COMMIT_SHA: unknown
