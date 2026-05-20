@@ -1,0 +1,65 @@
+# Based on: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile.cacheserver
+name: cache-server
+summary: Kubeflow Pipelines Cache Server
+description: This image is used as part of the Charmed Kubeflow product
+version: 2.16.0
+license: Apache-2.0
+base: ubuntu@22.04
+run-user: _daemon_
+platforms:
+  amd64:
+
+services:
+  cache-server:
+    override: replace
+    summary: "kfp cache server service"
+    startup: enabled
+    command: "/bin/cache_server"
+
+parts:
+  cache-server:
+    plugin: go
+    source-type: git    
+    source: https://github.com/kubeflow/pipelines.git
+    source-depth: 1
+    source-tag: 2.16.0   
+    build-snaps:
+      - go/1.24/stable
+    build-packages:
+      - apt
+      - bash
+      - gcc
+      - musl-dev
+    build-environment:
+      - GO111MODULE: "on"
+      - CGO_ENABLED: 0
+      - GOOS: linux
+      - GOARCH: amd64
+    stage-packages:
+      - ca-certificates
+      - bash      
+    override-build: |
+      set -xe
+
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      
+      go build -o $CRAFT_PART_INSTALL/bin/cache_server $CRAFT_PART_BUILD/backend/src/cache/*.go
+  
+  non-root-user:
+    after:
+      - cache-server
+    plugin: nil
+    override-prime: |
+      craftctl default
+      install -d -o 584792 -g 584792 -m 770 \
+        etc/webhook/certs
+  
+  security-team-requirement:
+    after:
+      - non-root-user
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > \
+       ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
