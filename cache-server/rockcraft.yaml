@@ -11,7 +11,7 @@ platforms:
 
 services:
   cache-server:
-    override: merge
+    override: replace
     summary: "kfp cache server service"
     startup: enabled
     command: "/bin/cache_server"
