@@ -1,16 +1,24 @@
 name: On PR
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
 
 jobs:
+  populate-labels:
+    name: Populate labels
+    if: github.base_ref == 'main' && (github.event.action == 'opened' || github.event.action == 'reopened')
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/populate-labels.yaml@main
+    secrets: inherit
+    with:
+      track_file_path: ".github/automatic_backport_tracks.yaml"
+      label_prefix: "backport "
 
   on-pull-request:
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/get-rocks-modified-and-build-scan-test-publish.yaml@main
     permissions:
       pull-requests: read
     secrets: inherit
-    with:
-      microk8s-channel: 1.32-strict/stable
-      juju-channel: 3.6/stable
-      python-version: "3.8"
