@@ -10,6 +10,8 @@ jobs:
 
   on-push:
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/get-rocks-modified-and-build-scan-test-publish.yaml@main
+    with:
+      base-ref: ${{ github.ref_name }}
     permissions:
       pull-requests: read
     secrets: inherit
