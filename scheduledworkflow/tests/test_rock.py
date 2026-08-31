@@ -45,3 +45,19 @@ def test_rock(rock_test_env):
         ],
         check=True,
     )
+
+    # assert the timezone database (tzdata) is present so the controller can
+    # resolve non-UTC IANA timezones set via CRON_SCHEDULE_TIMEZONE
+    # (e.g. Europe/Rome). See canonical/pipelines-rocks#318.
+    subprocess.run(
+        [
+            "docker",
+            "run",
+            "--entrypoint",
+            "/bin/bash",
+            LOCAL_ROCK_IMAGE,
+            "-c",
+            "ls -la /usr/share/zoneinfo/Europe/Rome",
+        ],
+        check=True,
+    )
