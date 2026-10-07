@@ -1,9 +1,23 @@
 # Dockerfile: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile
+#
+# Chisel-based variant: bare base + minimal sliced Ubuntu rootfs.
+# The original ubuntu@22.04 base shipped ~95 DEB packages (bash, perl, apt,
+# dpkg, coreutils, systemd, etc.). Chisel starts from `base: bare` (empty
+# rootfs) and adds ONLY the files the Go binary needs at runtime.
+#
+# The Go binary uses CGO (go-sqlite3), so it is dynamically linked
+# against glibc, OpenSSL, libstdc++, and zlib — all provided as Chisel
+# slices rather than full DEB packages.
+#
+# Python: the original used deadsnakes PPA for Python 3.11. Ubuntu 24.04
+# ships Python 3.12 by default, which compiles the KFP sample pipelines
+# just fine — no PPA needed.
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
 version: "2.16.0"
-base: ubuntu@22.04
+base: bare
+build-base: ubuntu@24.04
 license: Apache-2.0
 platforms:
   amd64:
@@ -15,43 +29,63 @@ services:
     startup: disabled
     environment:
       LOG_LEVEL: "info"
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
     command: /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true --logLevel=$LOG_LEVEL
 
-# Adds Deadsnakes ppa package repo to install python3.9 interpreter
-# Required when using a python version different from the default in the base
-# Ref: https://documentation.ubuntu.com/rockcraft/en/latest/reference/plugins/python_plugin/#dependencies
-package-repositories:
-  - type: apt
-    ppa: deadsnakes/ppa
-    priority: always
-
 parts:
-  security-team-requirement:
+  # ── Stage 1: build a minimal Ubuntu rootfs with Chisel ─────────────────
+  chisel-rootfs:
     plugin: nil
+    build-packages:
+      - ca-certificates
     override-build: |
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      CHISEL_VER="v1.0.0"
+      curl -sL "https://github.com/canonical/chisel/releases/download/${CHISEL_VER}/chisel_${CHISEL_VER}_linux_amd64.tar.gz" \
+        | tar xzf - -C /usr/local/bin chisel
+      chmod +x /usr/local/bin/chisel
 
+      # Dynamically-linked Go binary (uses CGO for SQLite). Need base
+      # filesystem, CA certs, and shared libraries at runtime.
+      chisel cut \
+        --release ubuntu-24.04 \
+        --root ${CRAFT_PART_INSTALL} \
+        base-files_bin \
+        base-files_base \
+        ca-certificates_data \
+        libc6_libs \
+        libssl3t64_libs \
+        libstdc++6_libs \
+        openssl_config \
+        zlib1g_libs
+
+      # /bin symlink conflicts with Go plugin's bin/ directory.
+      rm -rf "${CRAFT_PART_INSTALL}/bin"
+
+  # ── Stage 2: build the Go API server binary ────────────────────────────
   builder:
+    after: [chisel-rootfs]
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.16.0
     build-snaps:
-      - go/1.24/stable
-    build-environment:
-      - GO111MODULE: "on"
+      - go/1.26/stable
     build-packages:
+      - git
       - cmake
       - clang
       - musl-dev
       - openssl
-    override-build: |-
+    organize:
+      bin/apiserver: apiserver
+    override-build: |
       go build -o apiserver backend/src/apiserver/*.go
-      cp apiserver $CRAFT_STAGE
-      cp -r backend/src/apiserver/config/ $CRAFT_STAGE/config
-  
-  # Compile and stage the sample pipelines
+      cp apiserver ${CRAFT_PART_INSTALL}/
+
+  # ── Stage 3: compile and stage the sample pipelines ────────────────────
+  # Preserved from the original rockcraft.yaml. Uses the system Python 3.12
+  # (default on ubuntu@24.04) instead of deadsnakes Python 3.11.
   compiler:
+    after: [chisel-rootfs]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.16.0
@@ -59,10 +93,9 @@ parts:
       - ARGO_VERSION: v3.7.3
     build-packages:
       - default-jdk
-      - python3.11
+      - python3
       # required to build google-cloud-profiler wheel for pyproject.toml-based projects
-      - python3.11-dev
-      - python3.11-distutils
+      - python3-dev
       - jq
       - wget
 
@@ -72,19 +105,11 @@ parts:
       # The build steps below copy everything that is needed to the working directory
       rm -rf ./*
 
-      # Ensure Python 3.11 is the default version
-      update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
-      update-alternatives --set python3 /usr/bin/python3.11
-
-      # Install setuptools for Python 3.11 now that it's the default
-      apt-get update && apt-get install -y python3-setuptools
-
-      # Setup pip
-      wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-      python3 -m pip install --upgrade pip setuptools wheel
+      # Install setuptools and pip for the system Python 3
+      apt-get update && apt-get install -y python3-setuptools python3-pip
 
       cp $CRAFT_PART_SRC/backend/requirements.txt .
-      python3 -m pip install -r requirements.txt --no-cache-dir
+      python3 -m pip install --break-system-packages -r requirements.txt --no-cache-dir
 
       # Fetch argo CLI
       curl -sL -H "Accept: application/octet-stream" \
@@ -105,8 +130,9 @@ parts:
       echo "Compiling: \"$pipeline_py\"" && python3 "$pipeline_py" && echo -n "Output: " && ls "$pipeline_py.yaml"; \
       done
 
-      cp -r ./samples $CRAFT_STAGE/samples
+      cp -r ./samples ${CRAFT_PART_INSTALL}/samples
 
+  # ── Stage 4: assemble the final image ──────────────────────────────────
   server:
     after: [builder, compiler]
     plugin: nil
@@ -116,18 +142,33 @@ parts:
       # These are set at build in dockerfile (those are just links to examples)
       - COMMIT_SHA: unknown
       - TAG_NAME: unknown
-    overlay-packages:
-      # NOTE: "ca-certificates" installed among "overlay-packages" instead of
-      # "stage-packages" as a workaround to this issue:
-      # https://github.com/canonical/rockcraft/issues/334
-      - ca-certificates
-    stage-packages:
-      - wget
     override-build: |
-      cp -r $CRAFT_STAGE/config/ $CRAFT_PART_INSTALL/config
+      cp -r $CRAFT_PART_SRC/backend/src/apiserver/config/ $CRAFT_PART_INSTALL/config
       mkdir -p $CRAFT_PART_INSTALL/bin
       cp $CRAFT_STAGE/apiserver $CRAFT_PART_INSTALL/bin/apiserver
       cp -r $CRAFT_STAGE/samples/ $CRAFT_PART_INSTALL/samples
 
       sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
       sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
+
+  # ── Stage 5: runtime user and directories ──────────────────────────────
+  runtime-support:
+    after: [server]
+    plugin: nil
+    override-prime: |
+      craftctl default
+
+  # ── Stage 6: security-team artifact (dpkg-query-compatible inventory) ──
+  security-team-requirement:
+    after: [runtime-support]
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      {
+        echo "# os-release: $(. /etc/os-release && echo ${NAME} ${VERSION})"
+        for pkg in base-files ca-certificates libc6 libssl3t64 libstdc++6 openssl zlib1g; do
+          ver=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Version:/ {print $2; exit}')
+          src=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Source:/ {print $2; exit}')
+          echo "ii,${pkg},${ver},${src:-$pkg},${ver}"
+        done
+      } > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
