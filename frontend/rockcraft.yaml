@@ -1,58 +1,100 @@
 # Dockerfile: https://github.com/kubeflow/pipelines/blob/2.16.0/frontend/Dockerfile
+# Chisel-based variant: bare base + minimal sliced Ubuntu rootfs.
+#
+# Slices used (approximately, check chisel-releases for exact slice names):
+#   base-files_bins       /etc, /var, /tmp skeleton (owned by root)
+#   base-files_base       /usr/lib/os-release, /etc/dpkg/origins
+#   ca-certificates_data  /etc/ssl/certs/* (TLS trust anchors)
+#   libc6_libs            /lib/*/libc.so*, /lib/ld-linux-*.so* (glibc)
+#   libssl3_libs          /lib/*/libssl.so*, /lib/*/libcrypto.so* (OpenSSL)
+#   libstdc++6_libs       /lib/*/libstdc++.so* (C++ stdlib, for Node native addons)
+#   openssl_config        /etc/ssl/openssl.cnf
+#   tzdata_data           /usr/share/zoneinfo (optional, for date handling)
+
 name: frontend
-base: ubuntu@22.04
+base: bare
+build-base: ubuntu@24.04
 version: '2.16.0'
 summary: Kubeflow Pipelines Management Frontend
 description: |
-    This rock runs a frontend development server.
+  This rock runs a frontend development server.
 license: Apache-2.0
 platforms:
-    amd64:
+  amd64:
+
 run-user: _daemon_
+
 services:
   ml-pipeline-ui:
-    # Command is different than the upstream one due to the `daemon` user not having
-    # access to the `~/..` directory. Thus, we should update charm's command when integrating
-    # this rock.
     command: node /server/dist/server.js /client/ 3000
     override: replace
     startup: enabled
     environment:
       API_SERVER_ADDRESS: http://localhost:3001
+      NODE_ENV: production
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
 parts:
+  # ── Stage 1: build a minimal Ubuntu rootfs with Chisel ─────────────────
+  chisel-rootfs:
+    plugin: nil
+    build-packages:
+      - ca-certificates
+    override-build: |
+      # Download chisel binary directly (not in Ubuntu apt repos).
+      CHISEL_VER="v1.5.1"
+      curl -sL "https://github.com/canonical/chisel/releases/download/${CHISEL_VER}/chisel_${CHISEL_VER}_linux_amd64.tar.gz" \
+        | tar xzf - -C /usr/local/bin chisel
+      chmod +x /usr/local/bin/chisel
+
+      # Create the minimal rootfs from Ubuntu 24.04 slices.
+      # Slice names are from https://github.com/canonical/chisel-releases (noble).
+      chisel cut \
+        --release ubuntu-24.04 \
+        --root ${CRAFT_PART_INSTALL} \
+        base-files_bin \
+        base-files_base \
+        ca-certificates_data \
+        libc6_libs \
+        libssl3t64_libs \
+        libstdc++6_libs \
+        openssl_config \
+        zlib1g_libs
+
+  # ── Stage 2: install Node.js ───────────────────────────────────────────
   install-node:
+    after:
+      - chisel-rootfs
     plugin: nil
     override-build: |
-      curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}"
+      mkdir -p "${CRAFT_PART_INSTALL}/usr"
+      curl -s "https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "${CRAFT_PART_INSTALL}/usr"
+      # Strip npm's bundled dependencies — the runtime only needs the node binary.
+      # npm's node_modules contains its own copy of tar, minimatch, etc. which
+      # carry CVEs but are never executed at runtime (KFP uses node, not npm).
+      rm -rf "${CRAFT_PART_INSTALL}/usr/lib/node_modules"
 
-  # This part builds the client side of the frontend container image
+  # ── Stage 3: build and install the KFP frontend ────────────────────────
   frontend:
     after:
-      - install-node
+      - chisel-rootfs
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.16.0
+    build-packages:
+      - curl
+      - git
     override-build: |
-      curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
-      # Change working directory to pipelines/frontend
+      # Install Node for the build (into /usr, not the part install)
+      curl -s "https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
+
       cd frontend
       npm ci && npm run postinstall
       npm run build
-      # Create a client directory in root and copy the build directory into it
       mkdir -p ${CRAFT_PART_INSTALL}/client
       cp -a build/* ${CRAFT_PART_INSTALL}/client
 
-  # This part builds the server side of the frontend container image
-  backend:
-    after:
-      - install-node
-    plugin: nil
-    source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.16.0
-    override-build: |
-      curl -s "https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.gz" | tar --strip-components=1 -xzf - -C "/usr"
-      # Change working directory to pipelines/frontend
-      cd ./frontend
+      # Build server
       mkdir -p ./server/dist
       export BUILD_VERSION=$(git describe --abbrev=0 --tags)
       export BUILD_COMMIT=$(git rev-parse HEAD)
@@ -60,34 +102,48 @@ parts:
       echo $BUILD_COMMIT > ./server/dist/COMMIT_HASH
       echo $BUILD_DATE > ./server/dist/BUILD_DATE
       echo $BUILD_VERSION > ./server/dist/TAG_NAME
-
-      # Create a server directory in root and copy the server directory into it
       cp -r server ${CRAFT_PART_INSTALL}/
+
       cd ${CRAFT_PART_INSTALL}/server/
       npm ci
       npm run build
+      npm prune --production
 
+    override-prime: |
+      craftctl default
+      rm -rf \
+        client/node_modules/.cache \
+        server/node_modules/.cache \
+        usr/share/doc \
+        usr/share/man
+
+  # ── Stage 4: writable directories for the daemon user ──────────────────
   non-root-user:
     after:
       - frontend
-      - backend
+      - install-node
     plugin: nil
     override-build: |
-      # make config dir
       mkdir -p $CRAFT_PART_INSTALL/config
-      mkdir -p $CRAFT_PART_INSTALL/etc/config    
-
+      mkdir -p $CRAFT_PART_INSTALL/etc/config
     override-prime: |
       craftctl default
       install -d -o 584792 -g 584792 -m 770 \
         config etc/config
 
+  # ── Stage 5: security-team artifact (dpkg-query-compatible inventory) ──
   security-team-requirement:
     after:
       - non-root-user
     plugin: nil
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
-      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      {
+        echo "# os-release: $(. /etc/os-release && echo ${NAME} ${VERSION})"
+        for pkg in base-files ca-certificates libc6 libssl3t64 libstdc++6 openssl zlib1g; do
+          ver=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Version:/ {print $2; exit}')
+          src=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Source:/ {print $2; exit}')
+          echo "ii,${pkg},${ver},${src:-$pkg},${ver}"
+        done
+        echo "ii,nodejs,v24.14.0,nodejs,v24.14.0"
+      } > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query

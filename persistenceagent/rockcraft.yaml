@@ -1,11 +1,23 @@
 # Based on: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile.persistenceagent
+#
+# Chisel-based variant: bare base + minimal sliced Ubuntu rootfs.
+#
+# The persistence_agent binary uses go-sqlite3 (CGO), so it is dynamically
+# linked against glibc, OpenSSL, libsqlite3, libstdc++, and zlib. Those come
+# from Chisel slices, not full DEB packages.
+#
+# The service command uses `bash -c` for env-var expansion (Pebble does not
+# expand ${VAR} in command strings), so bash_bins is sliced into the runtime.
+# Bash only needs libc6 + libtinfo6 at runtime; --c (non-interactive) does
+# not need libreadline.
 name: persistenceagent
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend persistence agent of Kubeflow pipelines.
 version: "2.16.0"
 license: Apache-2.0
-base: ubuntu@22.04
+base: bare
+build-base: ubuntu@24.04
 platforms:
   amd64:
 run-user: _daemon_
@@ -16,47 +28,84 @@ services:
     startup: enabled
     environment:
       NAMESPACE: ""
-      TTL_SECONDS_AFTER_WORKFLOW_FINISH: 86400
-      NUM_WORKERS: 2
+      TTL_SECONDS_AFTER_WORKFLOW_FINISH: "86400"
+      NUM_WORKERS: "2"
       LOG_LEVEL: "info"
       EXECUTIONTYPE: "Workflow"
     command: bash -c 'persistence_agent --logtostderr=true --namespace=$NAMESPACE --ttlSecondsAfterWorkflowFinish=$TTL_SECONDS_AFTER_WORKFLOW_FINISH --numWorker $NUM_WORKERS --executionType $EXECUTIONTYPE --logLevel=$LOG_LEVEL'
 
 parts:
+  # ── Stage 1: build a minimal Ubuntu rootfs with Chisel ─────────────────
+  chisel-rootfs:
+    plugin: nil
+    build-packages:
+      - ca-certificates
+    override-build: |
+      CHISEL_VER="v1.5.1"
+      curl -sL "https://github.com/canonical/chisel/releases/download/${CHISEL_VER}/chisel_${CHISEL_VER}_linux_amd64.tar.gz" \
+        | tar xzf - -C /usr/local/bin chisel
+      chmod +x /usr/local/bin/chisel
+
+      # CGO-enabled Go binary (go-sqlite3) + bash for env-var expansion in
+      # the service command (Pebble does not expand ${VAR} inline).
+      chisel cut \
+        --release ubuntu-24.04 \
+        --root ${CRAFT_PART_INSTALL} \
+        base-files_bin \
+        base-files_base \
+        ca-certificates_data \
+        bash_bins \
+        libc6_libs \
+        libtinfo6_libs \
+        libssl3t64_libs \
+        libstdc++6_libs \
+        libsqlite3-0_libs \
+        zlib1g_libs \
+        openssl_config
+
+      rm -rf "${CRAFT_PART_INSTALL}/bin"
+
+  # ── Stage 2: build the persistence_agent Go binary ─────────────────────
   persistenceagent:
     plugin: go
+    after:
+      - chisel-rootfs
     source: https://github.com/kubeflow/pipelines
     source-type: git
     source-tag: 2.16.0
     build-snaps:
-      - go/1.24/stable
+      - go/1.26/stable
     build-packages:
       - git
-      - openssl
       - gcc
       - musl-dev
+      - openssl
     override-build: |
       set -xe
       cd $CRAFT_PART_SRC
       GO111MODULE=on go build -o $CRAFT_PART_INSTALL/bin/persistence_agent backend/src/agent/persistence/*.go
 
+  # ── Stage 3: runtime directories ──────────────────────────────────────
   non-root-user:
     after:
       - persistenceagent
     plugin: nil
-    override-build: |
-      # make config dir
-      mkdir -p $CRAFT_PART_INSTALL/var/run/secrets/kubeflow/tokens
     override-prime: |
       craftctl default
       install -d -o 584792 -g 584792 -m 770 var/run/secrets/kubeflow/tokens
 
+  # ── Stage 4: security-team artifact (dpkg-query-compatible CSV) ───────
   security-team-requirement:
     after:
       - non-root-user
     plugin: nil
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
-      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      {
+        echo "# os-release: $(. /etc/os-release && echo ${NAME} ${VERSION})"
+        for pkg in base-files ca-certificates bash libc6 libtinfo6 libssl3t64 libstdc++6 libsqlite3-0 zlib1g openssl; do
+          ver=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Version:/ {print $2; exit}')
+          src=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Source:/ {print $2; exit}')
+          echo "ii,${pkg},${ver},${src:-$pkg},${ver}"
+        done
+      } > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query

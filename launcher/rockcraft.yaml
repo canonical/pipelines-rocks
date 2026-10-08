@@ -1,11 +1,19 @@
 # Based on: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile.launcher
+#
+# Chisel-based variant: bare base + minimal sliced Ubuntu rootfs.
+#
+# launcher-v2 is built with CGO_ENABLED=0 + -tags netgo + -extldflags
+# "-static" (fully statically linked), so the ONLY runtime dependencies are a
+# /etc skeleton and the TLS CA bundle (Go crypto/x509 reads /etc/ssl/certs for
+# K8s API, object stores, and gRPC).
 name: kfp-launcher
 summary: Kubeflow Pipelines Launcher
 description: |
   Kubeflow Pipelines Launcher is a streamlined interface designed to simplify the creation, management, and deployment of machine learning workflows on Kubernetes.
 version: 2.16.0
 license: Apache-2.0
-base: ubuntu@22.04
+base: bare
+build-base: ubuntu@24.04
 run-user: _daemon_
 platforms:
   amd64:
@@ -18,32 +26,68 @@ services:
     command: "/bin/launcher-v2"
 
 parts:
-  security-team-requirement:
+  # ── Stage 1: build a minimal Ubuntu rootfs with Chisel ─────────────────
+  chisel-rootfs:
     plugin: nil
+    build-packages:
+      - ca-certificates
     override-build: |
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > \
-       ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      CHISEL_VER="v1.5.1"
+      curl -sL "https://github.com/canonical/chisel/releases/download/${CHISEL_VER}/chisel_${CHISEL_VER}_linux_amd64.tar.gz" \
+        | tar xzf - -C /usr/local/bin chisel
+      chmod +x /usr/local/bin/chisel
 
+      # Static Go binary: base filesystem + CA certs only. No shared libs
+      # (libc6, libssl3t64, libstdc++6, etc.) — CGO_ENABLED=0 links them in.
+      chisel cut \
+        --release ubuntu-24.04 \
+        --root ${CRAFT_PART_INSTALL} \
+        base-files_bin \
+        base-files_base \
+        ca-certificates_data
+
+      # /bin symlink created by base-files_bin conflicts with the Go
+      # plugin's bin/ directory — remove it so staging merges cleanly.
+      rm -rf "${CRAFT_PART_INSTALL}/bin"
+
+  # ── Stage 2: build the statically-linked launcher-v2 binary ────────────
   launcher:
     plugin: go
-    source-type: git    
+    after:
+      - chisel-rootfs
+    source-type: git
     source: https://github.com/kubeflow/pipelines.git
     source-depth: 1
-    source-tag: 2.16.0   
+    source-tag: 2.16.0
     build-snaps:
-      - go/1.24/stable
+      - go/1.26/stable
     build-packages:
-      - apt
-      - bash
+      - git
     build-environment:
-      - CGO_ENABLED: 0
+      - CGO_ENABLED: "0"
       - GOOS: linux
-    stage-packages:
-      - bash      
     override-build: |
       set -xe
 
       mkdir -p $CRAFT_PART_INSTALL/bin
       go build -tags netgo -ldflags '-extldflags "-static"' -o $CRAFT_PART_INSTALL/bin/launcher-v2 $CRAFT_PART_BUILD/backend/src/v2/cmd/launcher-v2/*.go
+
+  # ── Stage 3: security-team artifact (dpkg-query-compatible CSV) ───────
+  # On a bare base there is no var/lib/dpkg database to query. Reconstruct
+  # the inventory from the Chisel slices the rootfs actually contains, same
+  # column layout as the upstream ubuntu-base build:
+  #   ${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}
+  security-team-requirement:
+    after:
+      - launcher
+    plugin: nil
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      {
+        echo "# os-release: $(. /etc/os-release && echo ${NAME} ${VERSION})"
+        for pkg in base-files ca-certificates; do
+          ver=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Version:/ {print $2; exit}')
+          src=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Source:/ {print $2; exit}')
+          echo "ii,${pkg},${ver},${src:-$pkg},${ver}"
+        done
+      } > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query

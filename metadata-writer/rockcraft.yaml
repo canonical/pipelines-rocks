@@ -1,64 +1,120 @@
 # Based on: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/metadata_writer/Dockerfile
+#
+# Chisel-based variant: bare base + minimal sliced Ubuntu rootfs.
+#
+# Python 3.12 (native on ubuntu@24.04) replaces the deadsnakes Python 3.11.
+# Enabled by bumping ml-metadata 1.17.0 → 1.21.0, the first release with
+# cp312 wheels (1.17.x only shipped cp39/cp310/cp311, and no sdists).
+#
+# The proto schema (metadata_store.proto) is byte-identical between 1.17.0
+# and 1.21.0, so the gRPC wire protocol with the MLMD server (KFP 2.16
+# ships 1.14.0) is unaffected.
+#
+# A venv at /opt/venv supplies site-packages; the interpreter + stdlib
+# come from Chisel slices.
 name: metadata-writer
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This service logs the metadata for KFP components and pipelines.
 version: "2.16.0"
 license: Apache-2.0
-base: ubuntu@22.04
+base: bare
+build-base: ubuntu@24.04
 run-user: _daemon_
 services:
   kfp-metadata-writer:
     override: replace
     summary: "Entry point for kfp-metadata-writer oci-image"
     startup: enabled
-    command: "python3 -u /kfp/metadata_writer/metadata_writer.py"
+    command: "/usr/bin/python3.12 -u /kfp/metadata_writer/metadata_writer.py"
+    environment:
+      PYTHONPATH: /opt/python-deps
 platforms:
   amd64:
 
-package-repositories:
-  - type: apt
-    ppa: deadsnakes/ppa
-    priority: always
-
 parts:
-  security-team-requirement:
+  # ── Stage 1: build a minimal Ubuntu rootfs with Chisel ─────────────────
+  chisel-rootfs:
     plugin: nil
+    build-packages:
+      - ca-certificates
     override-build: |
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
-      > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      CHISEL_VER="v1.5.1"
+      curl -sL "https://github.com/canonical/chisel/releases/download/${CHISEL_VER}/chisel_${CHISEL_VER}_linux_amd64.tar.gz" \
+        | tar xzf - -C /usr/local/bin chisel
+      chmod +x /usr/local/bin/chisel
 
-  python:
-    plugin: python
+      # Python 3.12 interpreter + stdlib, plus the shared libraries that
+      # CPython and the C extensions (grpcio, ml-metadata, PyYAML) link.
+      chisel cut \
+        --release ubuntu-24.04 \
+        --root ${CRAFT_PART_INSTALL} \
+        base-files_bin \
+        base-files_base \
+        ca-certificates_data \
+        python3.12_core \
+        python3.12_standard \
+        libc6_libs \
+        libssl3t64_libs \
+        libstdc++6_libs \
+        zlib1g_libs \
+        libexpat1_libs \
+        libffi8_libs \
+        libsqlite3-0_libs \
+        libbz2-1.0_libs \
+        liblzma5_libs \
+        libuuid1_libs \
+        openssl_config
+
+      rm -rf "${CRAFT_PART_INSTALL}/bin"
+
+# ── Stage 2: install Python dependencies into /opt/python-deps ─────────
+  # Uses pip --target (not a venv) so the Chisel-sliced system interpreter
+  # picks the packages up via PYTHONPATH=/opt/python-deps; avoids needing
+  # ensurepip in the build container.
+  python-deps:
+    after: [chisel-rootfs]
+    plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-subdir: backend/metadata_writer
     source-tag: 2.16.0
-    stage-packages:
-      # sync this python version to the base image in the Dockerfile.
-      # Also keep this in sync with PARTS_PYTHON_INTERPRETER below.
-    - python3.11-venv
-    python-requirements:
-    - requirements.txt
-    build-environment: 
-    - PARTS_PYTHON_INTERPRETER: python3.11
+    build-packages:
+      - python3-pip
+    override-build: |
+      set -xe
+      REQ=${CRAFT_PART_SRC}/backend/metadata_writer/requirements.txt
+      # Bump locked ml-metadata and protobuf for Python 3.12 compat.
+      sed -i 's/ml-metadata==1.17.0/ml-metadata==1.21.0/' "$REQ"
+      sed -i 's/protobuf==4[^[:blank:]]*/protobuf==6.33.6/' "$REQ"
+      # grpcio 1.74.0 -> 1.84.0 (resolved by ml-metadata 1.21.0 deps)
+      sed -i 's/grpcio==1.74.0/grpcio==1.84.0/' "$REQ"
 
+      /usr/bin/python3.12 -m pip install --break-system-packages --ignore-installed \
+        --no-cache-dir --target ${CRAFT_PART_INSTALL}/opt/python-deps -r "$REQ"
+
+  # ── Stage 3: copy the metadata_writer source ───────────────────────────
   copy-files:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.16.0
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/kfp/metadata_writer/
-      cp  ${CRAFT_PART_SRC}/backend/metadata_writer/src/* ${CRAFT_PART_INSTALL}/kfp/metadata_writer
+      cp ${CRAFT_PART_SRC}/backend/metadata_writer/src/* ${CRAFT_PART_INSTALL}/kfp/metadata_writer
 
-  set-python-alternatives:
+  # ── Stage 4: security-team artifact (dpkg-query-compatible CSV) ───────
+  # On a bare base there is no dpkg database — reconstruct from Chisel
+  # slices via apt-cache, same column layout as upstream dpkg-query.
+  security-team-requirement:
+    after:
+      - python-deps
+      - copy-files
     plugin: nil
-    after: [python]
-    stage-packages:
-      - python3.11
-    override-prime: |
-      craftctl default
-      # Create symlinks for python3 and python to point to python3.11
-      ln -sf python3.11 ${CRAFT_PRIME}/usr/bin/python3
-      ln -sf python3.11 ${CRAFT_PRIME}/usr/bin/python
+    override-build: |
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      {
+        echo "# os-release: $(. /etc/os-release && echo ${NAME} ${VERSION})"
+        for pkg in base-files ca-certificates python3.12 libc6 libssl3t64 libstdc++6 zlib1g libexpat1 libffi8 libsqlite3-0 libbz2-1.0 liblzma5 libuuid1 openssl; do
+          ver=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Version:/ {print $2; exit}')
+          src=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Source:/ {print $2; exit}')
+          echo "ii,${pkg},${ver},${src:-$pkg},${ver}"
+        done
+      } > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
