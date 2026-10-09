@@ -1,17 +1,10 @@
 # Dockerfile: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile
 #
 # Chisel-based variant: bare base + minimal sliced Ubuntu rootfs.
-# The original ubuntu@22.04 base shipped ~95 DEB packages (bash, perl, apt,
-# dpkg, coreutils, systemd, etc.). Chisel starts from `base: bare` (empty
-# rootfs) and adds ONLY the files the Go binary needs at runtime.
 #
 # The Go binary uses CGO (go-sqlite3), so it is dynamically linked
 # against glibc, OpenSSL, libstdc++, and zlib — all provided as Chisel
 # slices rather than full DEB packages.
-#
-# Python: the original used deadsnakes PPA for Python 3.11. Ubuntu 24.04
-# ships Python 3.12 by default, which compiles the KFP sample pipelines
-# just fine — no PPA needed.
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
@@ -26,7 +19,7 @@ services:
   apiserver:
     override: merge
     summary: "pipelines api-server service"
-    startup: disabled
+    startup: enabled
     environment:
       LOG_LEVEL: "info"
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
@@ -39,7 +32,7 @@ parts:
     build-packages:
       - ca-certificates
     override-build: |
-      CHISEL_VER="v1.0.0"
+      CHISEL_VER="v1.5.1"
       curl -sL "https://github.com/canonical/chisel/releases/download/${CHISEL_VER}/chisel_${CHISEL_VER}_linux_amd64.tar.gz" \
         | tar xzf - -C /usr/local/bin chisel
       chmod +x /usr/local/bin/chisel
@@ -75,11 +68,9 @@ parts:
       - clang
       - musl-dev
       - openssl
-    organize:
-      bin/apiserver: apiserver
     override-build: |
-      go build -o apiserver backend/src/apiserver/*.go
-      cp apiserver ${CRAFT_PART_INSTALL}/
+      mkdir -p ${CRAFT_PART_INSTALL}/bin
+      go build -o ${CRAFT_PART_INSTALL}/bin/apiserver backend/src/apiserver/*.go
 
   # ── Stage 3: compile and stage the sample pipelines ────────────────────
   # Preserved from the original rockcraft.yaml. Uses the system Python 3.12
@@ -145,22 +136,15 @@ parts:
     override-build: |
       cp -r $CRAFT_PART_SRC/backend/src/apiserver/config/ $CRAFT_PART_INSTALL/config
       mkdir -p $CRAFT_PART_INSTALL/bin
-      cp $CRAFT_STAGE/apiserver $CRAFT_PART_INSTALL/bin/apiserver
+      cp $CRAFT_STAGE/bin/apiserver $CRAFT_PART_INSTALL/bin/apiserver
       cp -r $CRAFT_STAGE/samples/ $CRAFT_PART_INSTALL/samples
 
       sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
       sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i $CRAFT_PART_INSTALL/config/sample_config.json
 
-  # ── Stage 5: runtime user and directories ──────────────────────────────
-  runtime-support:
-    after: [server]
-    plugin: nil
-    override-prime: |
-      craftctl default
-
-  # ── Stage 6: security-team artifact (dpkg-query-compatible inventory) ──
+  # ── Stage 5: security-team artifact (dpkg-query-compatible inventory) ──
   security-team-requirement:
-    after: [runtime-support]
+    after: [server]
     plugin: nil
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
