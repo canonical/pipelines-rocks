@@ -1,8 +1,8 @@
-# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile
+# Dockerfile: https://github.com/kubeflow/pipelines/blob/2.16.1/backend/Dockerfile
 name: api-server
 summary: An image for using Kubeflow pipelines API
 description: An image for using Kubeflow pipelines API
-version: "2.16.0"
+version: "2.16.1"
 base: ubuntu@22.04
 license: Apache-2.0
 platforms:
@@ -35,7 +35,7 @@ parts:
   builder:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.16.0
+    source-tag: 2.16.1
     build-snaps:
       - go/1.24/stable
     build-environment:
@@ -54,7 +54,7 @@ parts:
   compiler:
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.16.0
+    source-tag: 2.16.1
     build-environment:
       - ARGO_VERSION: v3.7.3
     build-packages:
@@ -111,7 +111,7 @@ parts:
     after: [builder, compiler]
     plugin: nil
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.16.0
+    source-tag: 2.16.1
     build-environment:
       # These are set at build in dockerfile (those are just links to examples)
       - COMMIT_SHA: unknown
