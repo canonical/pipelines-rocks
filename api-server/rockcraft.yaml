@@ -56,7 +56,7 @@ parts:
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.16.1
     build-environment:
-      - ARGO_VERSION: v3.7.3
+      - ARGO_VERSION: v3.7.17
     build-packages:
       - default-jdk
       - python3.11
