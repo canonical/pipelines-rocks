@@ -56,6 +56,8 @@ parts:
     source: https://github.com/kubeflow/pipelines.git
     source-tag: 2.16.1
     build-environment:
+      # this version deviates from upstream to align to the controller version used in CKF
+      # see https://github.com/canonical/argo-workflows-rocks/issues/58
       - ARGO_VERSION: v3.7.17
     build-packages:
       - default-jdk
