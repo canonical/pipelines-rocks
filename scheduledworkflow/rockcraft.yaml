@@ -1,11 +1,11 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile.scheduledworkflow
+# Based on: https://github.com/kubeflow/pipelines/blob/2.18.0/backend/Dockerfile.scheduledworkflow
 name: scheduledworkflow
 summary: Reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK
 description: |
   This component serves as the backend scheduled workflow of Kubeflow pipelines.
-version: "2.16.0"
+version: "2.18.0"
 license: Apache-2.0
-base: ubuntu@22.04
+base: ubuntu@24.04
 platforms:
   amd64:
 run-user: _daemon_
@@ -13,7 +13,7 @@ services:
   controller:
     override: replace
     summary: "scheduled workflow controller service"
-    command: bash -c '/bin/controller --logtostderr=true --namespace=${NAMESPACE} --logLevel=${LOG_LEVEL} --clientQPS=${CLIENT_QPS} --clientBurst=${CLIENT_BURST} --recurringRunResyncIntervalSeconds=${RESYNC_INTERVAL_SECONDS} --metricsPort=${METRICS_PORT}'
+    command: bash -c '/bin/controller --logtostderr=true --multiUser=${MULTIUSER} --namespace=${NAMESPACE} --logLevel=${LOG_LEVEL} --clientQPS=${CLIENT_QPS} --clientBurst=${CLIENT_BURST} --recurringRunResyncIntervalSeconds=${RESYNC_INTERVAL_SECONDS} --metricsPort=${METRICS_PORT} --userIdentityHeader="${USER_IDENTITY_HEADER}" --userIdentityValue="${USER_IDENTITY_VALUE}"'
     startup: enabled
     environment:
       NAMESPACE: ""
@@ -23,22 +23,28 @@ services:
       CLIENT_BURST: "10"
       RESYNC_INTERVAL_SECONDS: "30"
       METRICS_PORT: "9090"
+      MULTIUSER: "false"
+      USER_IDENTITY_HEADER: ""
+      USER_IDENTITY_VALUE: ""
 
 parts:
   controller:
     plugin: go
     source: https://github.com/kubeflow/pipelines.git
-    source-tag: 2.16.0
+    source-tag: 2.18.0
     build-snaps:
-      - go/1.24/stable
+      - go/1.27/stable
     build-environment:
       - GO111MODULE: "on"
+      - GOPROXY: "https://proxy.golang.org|direct"
     stage-packages:
       # Required so the controller can resolve non-UTC IANA timezones set via
       # CRON_SCHEDULE_TIMEZONE (e.g. Europe/Rome). Mirrors the "tzdata" package
       # installed in the upstream Dockerfile.scheduledworkflow.
       - tzdata
     override-build: |
+      # Canonical patch: KFP_DISABLE_SCHEDULE_WRITER_HANDOFF opt-out, see patches/
+      git apply --verbose $CRAFT_PROJECT_DIR/patches/*.patch
       go build -o $CRAFT_PART_INSTALL/bin/controller backend/src/crd/controller/scheduledworkflow/*.go
       
   non-root-user:
@@ -60,4 +66,4 @@ parts:
     plugin: nil
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-24.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query

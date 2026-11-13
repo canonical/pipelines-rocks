@@ -61,3 +61,17 @@ def test_rock(rock_test_env):
         ],
         check=True,
     )
+
+    # assert the schedule-writer handoff opt-out patch was compiled in
+    subprocess.run(
+        [
+            "docker",
+            "run",
+            "--entrypoint",
+            "/bin/bash",
+            LOCAL_ROCK_IMAGE,
+            "-c",
+            "grep -q KFP_DISABLE_SCHEDULE_WRITER_HANDOFF /bin/controller",
+        ],
+        check=True,
+    )
