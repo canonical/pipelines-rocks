@@ -1,10 +1,10 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile.driver
+# Based on: https://github.com/kubeflow/pipelines/blob/2.18.0/backend/Dockerfile.driver
 name: kfp-driver
 summary: Kubeflow Pipelines Driver
 description: This image is used as part of the Charmed Kubeflow product
-version: 2.16.0
+version: 2.18.0
 license: Apache-2.0
-base: ubuntu@22.04
+base: ubuntu@24.04
 run-user: _daemon_
 platforms:
   amd64:
@@ -30,13 +30,14 @@ parts:
     source-type: git    
     source: https://github.com/kubeflow/pipelines.git
     source-depth: 1
-    source-tag: 2.16.0   
+    source-tag: 2.18.0   
     build-snaps:
-      - go/1.24/stable
+      - go/1.27/stable
     build-packages:
       - apt
       - bash
     build-environment:
+      - GOPROXY: "https://proxy.golang.org|direct"
       - GCFLAGS: ""
       - CGO_ENABLED: 0
       - GOOS: linux
