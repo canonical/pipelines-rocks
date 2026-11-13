@@ -1,0 +1,32 @@
+--- a/backend/src/common/util/scheduled_writer_handoff.go
++++ b/backend/src/common/util/scheduled_writer_handoff.go
+@@ -23,6 +23,7 @@
+ 	"sync/atomic"
+ 	"time"
+ 
++	"github.com/golang/glog"
+ 	appsv1 "k8s.io/api/apps/v1"
+ 	corev1 "k8s.io/api/core/v1"
+ 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+@@ -44,6 +45,10 @@
+ // API/controller process. It must include all writers sharing this installation.
+ const scheduleWritersEnv = "KFP_SCHEDULE_WRITERS"
+ 
++// Canonical: Juju runs writers as StatefulSet pods without an `app` label, so
++// the Deployment-based handoff can never complete there.
++const disableScheduleWriterHandoffEnv = "KFP_DISABLE_SCHEDULE_WRITER_HANDOFF"
++
+ type scheduleWriterIdentity struct {
+ 	Role       string `json:"role"`
+ 	Deployment string `json:"deployment"`
+@@ -384,6 +389,10 @@
+ // downgrading to a legacy writer requires a separately coordinated rollback.
+ // Failed checks are retried, and concurrent callers share the first success.
+ func NewManagedScheduleWriterHandoff(client kubernetes.Interface, namespace, podName string) func(context.Context) error {
++	if os.Getenv(disableScheduleWriterHandoffEnv) == "true" {
++		glog.Warningf("%s=true: managed schedule writer handoff is disabled", disableScheduleWriterHandoffEnv)
++		return func(context.Context) error { return nil }
++	}
+ 	var complete atomic.Bool
+ 	gate := make(chan struct{}, 1)
+ 	gate <- struct{}{}
