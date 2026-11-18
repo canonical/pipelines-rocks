@@ -44,6 +44,7 @@ parts:
     override-build: |-
       # Canonical patch: KFP_DISABLE_SCHEDULE_WRITER_HANDOFF opt-out, see patches/
       git apply --verbose $CRAFT_PROJECT_DIR/patches/*.patch
+      go test ./backend/src/common/util/ -run 'ScheduleWriter' -count=1
       go list -mod=readonly -m -f '{{.Version}}' github.com/argoproj/argo-workflows/v4 > $CRAFT_STAGE/argo-version
       go build -o apiserver backend/src/apiserver/*.go
       cp apiserver $CRAFT_STAGE

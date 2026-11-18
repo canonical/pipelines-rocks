@@ -16,7 +16,7 @@ def test_rock(rock_container):
         check=True,
     )
 
-    # assert the schedule-writer handoff opt-out patch was compiled in
+    # smoke check that the patched binary is shipped; behaviour is unit tested at build time
     subprocess.run(
         [
             "docker",
