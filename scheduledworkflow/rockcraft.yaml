@@ -45,6 +45,7 @@ parts:
     override-build: |
       # Canonical patch: KFP_DISABLE_SCHEDULE_WRITER_HANDOFF opt-out, see patches/
       git apply --verbose $CRAFT_PROJECT_DIR/patches/*.patch
+      go test ./backend/src/common/util/ -run 'ScheduleWriter' -count=1
       go build -o $CRAFT_PART_INSTALL/bin/controller backend/src/crd/controller/scheduledworkflow/*.go
       
   non-root-user:
