@@ -1,11 +1,11 @@
-# Based on: https://github.com/kubeflow/pipelines/blob/2.16.0/backend/Dockerfile.viewercontroller
+# Based on: https://github.com/kubeflow/pipelines/blob/2.18.0/backend/Dockerfile.viewercontroller
 name: viewer-crd-controller
 summary: An image for the Viewer CRD Controller
 description: |
   This image is used as part of the Charmed Kubeflow product.
-version: "2.16.0"
+version: "2.18.0"
 license: Apache-2.0
-base: ubuntu@22.04
+base: ubuntu@24.04
 platforms:
   amd64:
 run-user: _daemon_
@@ -24,14 +24,15 @@ parts:
     plugin: go
     source: https://github.com/kubeflow/pipelines
     build-snaps:
-      - go/1.24/stable
+      - go/1.27/stable
     source-type: git
-    source-tag: 2.16.0
+    source-tag: 2.18.0
     build-packages:
       - git
       - gcc
       - musl-dev
     build-environment:
+      - GOPROXY: "https://proxy.golang.org|direct"
       - CGO_ENABLED: 0
       - GOOS: linux
       - GO111MODULE: "on"
@@ -45,5 +46,5 @@ parts:
     override-build: |
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
       (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+      dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-24.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
