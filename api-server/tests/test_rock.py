@@ -15,3 +15,17 @@ def test_rock(rock_container):
         ["docker", "exec", rock_container[1], "ls", "-la", "/samples"],
         check=True,
     )
+
+    # smoke check that the patched binary is shipped; behaviour is unit tested at build time
+    subprocess.run(
+        [
+            "docker",
+            "exec",
+            rock_container[1],
+            "grep",
+            "-q",
+            "KFP_DISABLE_SCHEDULE_WRITER_HANDOFF",
+            "/bin/apiserver",
+        ],
+        check=True,
+    )
