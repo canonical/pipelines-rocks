@@ -1,0 +1,34 @@
+--- /dev/null
++++ b/backend/src/common/util/scheduled_writer_handoff_canonical_test.go
+@@ -0,0 +1,31 @@
++// Canonical: tests for the KFP_DISABLE_SCHEDULE_WRITER_HANDOFF opt-out (0001 patch).
++
++package util
++
++import (
++	"context"
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/require"
++	"k8s.io/client-go/kubernetes/fake"
++)
++
++func TestManagedScheduleWriterHandoffDisabled(t *testing.T) {
++	t.Setenv(disableScheduleWriterHandoffEnv, "true")
++	client := fake.NewSimpleClientset()
++	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
++	defer cancel()
++
++	require.NoError(t, NewManagedScheduleWriterHandoff(client, "kubeflow", "kfp-api-0")(ctx))
++	require.Empty(t, client.Actions(), "disabled handoff must not call the Kubernetes API")
++}
++
++func TestManagedScheduleWriterHandoffEnabledByDefault(t *testing.T) {
++	t.Setenv(disableScheduleWriterHandoffEnv, "")
++	client := fake.NewSimpleClientset()
++	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
++	defer cancel()
++
++	require.Error(t, NewManagedScheduleWriterHandoff(client, "kubeflow", "kfp-api-0")(ctx))
++}
